@@ -427,15 +427,27 @@ export default function PublicProfile() {
                           <ExternalLink className="h-4 w-4 text-cardinal" />
                         </a>
                       )}
-                      {links.website && (
+                      {links.personalWebsite && (
                         <a 
-                          href={String(links.website)} 
+                          href={String(links.personalWebsite)} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
                         >
                           <Globe className="h-5 w-5 text-gray-600" />
                           <span className="text-gray-700">Website</span>
+                          <ExternalLink className="h-4 w-4 text-cardinal" />
+                        </a>
+                      )}
+                      {links.resume && (
+                        <a 
+                          href={String(links.resume)} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <Briefcase className="h-5 w-5 text-gray-700" />
+                          <span className="text-gray-700">Resume</span>
                           <ExternalLink className="h-4 w-4 text-cardinal" />
                         </a>
                       )}

@@ -515,6 +515,74 @@ export async function updateResumeUrl(url: string) {
   revalidatePath('/profile')
 }
 
+// Update personal website URL
+export async function updatePersonalWebsite(url: string) {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current profile to merge with existing links
+  const { data: currentProfile, error: currentError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (currentError) {
+    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
+  }
+
+  const currentLinks = currentProfile.links || {}
+  const newLinks = {
+    ...currentLinks,
+    personalWebsite: url
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ links: newLinks })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update personal website: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update GitHub URL
+export async function updateGithub(url: string) {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current profile to merge with existing links
+  const { data: currentProfile, error: currentError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (currentError) {
+    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
+  }
+
+  const currentLinks = currentProfile.links || {}
+  const newLinks = {
+    ...currentLinks,
+    github: url
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ links: newLinks })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update GitHub URL: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
 // Project management functions
 
 // Add a new project

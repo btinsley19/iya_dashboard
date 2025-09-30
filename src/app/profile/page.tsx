@@ -37,6 +37,8 @@ import {
   updateContentIngestion,
   updateLinkedInUrl,
   updateResumeUrl,
+  updatePersonalWebsite,
+  updateGithub,
   addProject,
   updateProject,
   deleteProject,
@@ -443,9 +445,15 @@ export default function Profile() {
         await updateResumeUrl(newResumeUrl)
       }
 
-      // TODO: Update personal website and GitHub in database
-      // await updatePersonalWebsite(newPersonalWebsite)
-      // await updateGithub(newGithub)
+      // Update personal website if changed
+      if (newPersonalWebsite !== originalPersonalWebsite) {
+        await updatePersonalWebsite(newPersonalWebsite)
+      }
+
+      // Update GitHub if changed
+      if (newGithub !== originalGithub) {
+        await updateGithub(newGithub)
+      }
 
       // Update degree if changed
       if (user.degree !== undefined) {
