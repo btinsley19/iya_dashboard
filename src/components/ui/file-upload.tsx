@@ -119,7 +119,7 @@ export function FileUpload({
                 ) : (
                   <X className="h-4 w-4" />
                 )}
-                Remove Image
+                Remove
               </Button>
             )}
           </div>
