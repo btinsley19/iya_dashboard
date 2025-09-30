@@ -393,12 +393,17 @@ export async function addInterest(interestName: string) {
     throw new Error(`Failed to fetch tag: ${tagError.message}`)
   }
 
+  // Ensure tag exists and has an ID
+  if (!tag || !tag.id) {
+    throw new Error('Failed to get or create tag')
+  }
+
   // Add tag to user profile
   const { error: profileTagError } = await supabase
     .from('profile_tags')
     .insert({
       profile_id: user.id,
-      tag_id: tag?.id
+      tag_id: tag.id
     })
 
   if (profileTagError) {
