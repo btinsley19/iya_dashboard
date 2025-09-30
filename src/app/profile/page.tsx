@@ -27,7 +27,9 @@ import {
   getUserProfile, 
   updateProfile, 
   addSkill, 
-  removeSkill, 
+  removeSkill,
+  addInterest,
+  removeInterest, 
   addHobbyOrSport,
   removeHobbyOrSport,
   addFavoriteTool,
@@ -907,8 +909,8 @@ export default function Profile() {
         return
       }
       
-      // TODO: Add interest to database
-      // await addInterest(interestToAdd)
+      // Add interest to database
+      await addInterest(interestToAdd)
     } catch (err) {
       console.error('Error adding interest:', err)
       setError(formatErrorMessage(err))
@@ -940,8 +942,8 @@ export default function Profile() {
         return
       }
       
-      // TODO: Remove interest from database
-      // await removeInterest(interest)
+      // Remove interest from database
+      await removeInterest(interest)
     } catch (err) {
       console.error('Error removing interest:', err)
       setError(formatErrorMessage(err))
