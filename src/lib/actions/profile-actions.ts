@@ -308,12 +308,17 @@ export async function addSkill(skillName: string) {
     throw new Error(`Failed to fetch skill: ${skillError.message}`)
   }
 
+  // Ensure skill exists and has an ID
+  if (!skill || !skill.id) {
+    throw new Error('Failed to get or create skill')
+  }
+
   // Add skill to user profile
   const { error: profileSkillError } = await supabase
     .from('profile_skills')
     .insert({
       profile_id: user.id,
-      skill_id: skill?.id,
+      skill_id: skill.id,
       level: 1 // Default level
     })
 
