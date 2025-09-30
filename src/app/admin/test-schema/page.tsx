@@ -6,9 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 
+interface TestResults {
+  profilesTableExists: boolean
+  insertSuccessful: boolean
+  cohortField: boolean
+  graduationYearField: boolean
+  cohortValue: string | null
+  graduationYearValue: number | null
+  allFields: string[]
+}
+
 export default function TestSchemaPage() {
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<any>(null)
+  const [results, setResults] = useState<TestResults | null>(null)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 

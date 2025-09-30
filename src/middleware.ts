@@ -1,6 +1,7 @@
 import { updateSession } from '@/lib/supabase/middleware'
+import type { NextRequest } from 'next/server'
 
-export async function middleware(request: Request) {
+export async function middleware(request: NextRequest) {
   const { pathname } = new URL(request.url)
   
   // Allow auth pages and API routes

@@ -6,9 +6,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 
+interface Profile {
+  id: string
+  full_name: string | null
+  email: string
+  cohort: string | null
+  graduation_year: number | null
+  status: string
+  error?: string
+}
+
+interface FixResults {
+  totalProfiles: number
+  fixedProfiles: number
+  failedProfiles: number
+  fixed: Profile[]
+  failed: Profile[]
+}
+
 export default function FixProfilesPage() {
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<any>(null)
+  const [results, setResults] = useState<FixResults | null>(null)
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
@@ -37,7 +55,7 @@ export default function FixProfilesPage() {
         try {
           // For demo purposes, set default values
           // In a real scenario, you might want to ask the user for this data
-          const updates: any = {}
+          const updates: Partial<Pick<Profile, 'cohort' | 'graduation_year'>> = {}
           
           if (!profile.cohort) {
             updates.cohort = 'Cohort 10' // Default cohort
@@ -154,7 +172,7 @@ export default function FixProfilesPage() {
                         <span className="font-medium">Successfully Fixed Profiles</span>
                       </div>
                       <div className="space-y-2">
-                        {results.fixed.map((profile: any) => (
+                        {results.fixed.map((profile) => (
                           <div key={profile.id} className="text-sm text-green-700 bg-green-100 p-2 rounded">
                             <strong>{profile.full_name}</strong> ({profile.email}) - 
                             Cohort: {profile.cohort}, Year: {profile.graduation_year}
@@ -173,7 +191,7 @@ export default function FixProfilesPage() {
                         <span className="font-medium">Failed to Fix</span>
                       </div>
                       <div className="space-y-2">
-                        {results.failed.map((profile: any) => (
+                        {results.failed.map((profile) => (
                           <div key={profile.id} className="text-sm text-red-700 bg-red-100 p-2 rounded">
                             <strong>{profile.full_name}</strong> ({profile.email}) - 
                             Error: {profile.error}

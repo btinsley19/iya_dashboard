@@ -25,7 +25,7 @@ export interface DirectoryProfile extends Profile {
     title: string
     summary: string | null
     description: string | null
-    links: any
+    links: Record<string, unknown> | null
     visibility: 'public' | 'private' | 'unlisted'
   }>
   tags: Array<{
@@ -49,6 +49,8 @@ export interface DirectoryProfile extends Profile {
   favoriteTools: Array<{
     id: string
     name: string
+    description?: string
+    categories?: string[]
     category?: string
     link?: string
   }>
@@ -145,18 +147,18 @@ export async function getDirectoryProfiles(filters: DirectoryFilters = {}): Prom
     // Transform the data to match our interface
     const transformedProfiles: DirectoryProfile[] = profiles.map(profile => ({
       ...profile,
-      skills: profile.profile_skills?.map(ps => ({
+      skills: profile.profile_skills?.map((ps: { skills: { id: string; name: string }; level: number }) => ({
         id: ps.skills.id,
         name: ps.skills.name,
         level: ps.level
       })) || [],
-      classes: profile.profile_classes?.map(pc => ({
+      classes: profile.profile_classes?.map((pc: { classes: { id: string; code: string; title: string }; role: 'ta' | 'mentor' }) => ({
         id: pc.classes.id,
         code: pc.classes.code,
         title: pc.classes.title,
         role: pc.role
       })) || [],
-      tags: profile.profile_tags?.map(pt => ({
+      tags: profile.profile_tags?.map((pt: { tags: { id: string; name: string } }) => ({
         id: pt.tags.id,
         name: pt.tags.name
       })) || [],
@@ -277,18 +279,18 @@ export async function getUserRecommendations(userId: string): Promise<Recommenda
     // Transform profiles
     const transformedProfiles: DirectoryProfile[] = allProfiles.map(profile => ({
       ...profile,
-      skills: profile.profile_skills?.map(ps => ({
+      skills: profile.profile_skills?.map((ps: { skills: { id: string; name: string }; level: number }) => ({
         id: ps.skills.id,
         name: ps.skills.name,
         level: ps.level
       })) || [],
-      classes: profile.profile_classes?.map(pc => ({
+      classes: profile.profile_classes?.map((pc: { classes: { id: string; code: string; title: string }; role: 'ta' | 'mentor' }) => ({
         id: pc.classes.id,
         code: pc.classes.code,
         title: pc.classes.title,
         role: pc.role
       })) || [],
-      tags: profile.profile_tags?.map(pt => ({
+      tags: profile.profile_tags?.map((pt: { tags: { id: string; name: string } }) => ({
         id: pt.tags.id,
         name: pt.tags.name
       })) || [],
@@ -311,9 +313,9 @@ export async function getUserRecommendations(userId: string): Promise<Recommenda
       let matchScore = 0
 
       // Check for shared skills
-      const currentUserSkills = currentUser.profile_skills?.map(ps => ps.skills.name) || []
+      const currentUserSkills = currentUser.profile_skills?.map((ps: { skills: { name: string } }) => ps.skills.name) || []
       const profileSkills = profile.skills.map(s => s.name)
-      const sharedSkills = currentUserSkills.filter(skill => profileSkills.includes(skill))
+      const sharedSkills = currentUserSkills.filter((skill: string) => profileSkills.includes(skill))
       
       if (sharedSkills.length > 0) {
         connectionPoints.push(`Shared skills: ${sharedSkills.join(', ')}`)
@@ -341,9 +343,9 @@ export async function getUserRecommendations(userId: string): Promise<Recommenda
       }
 
       // Check for shared classes
-      const currentUserClasses = currentUser.profile_classes?.map(pc => pc.classes.code) || []
+      const currentUserClasses = currentUser.profile_classes?.map((pc: { classes: { code: string } }) => pc.classes.code) || []
       const profileClasses = profile.classes.map(c => c.code)
-      const sharedClasses = currentUserClasses.filter(classCode => profileClasses.includes(classCode))
+      const sharedClasses = currentUserClasses.filter((classCode: string) => profileClasses.includes(classCode))
       
       if (sharedClasses.length > 0) {
         connectionPoints.push(`Shared classes: ${sharedClasses.join(', ')}`)
@@ -351,9 +353,9 @@ export async function getUserRecommendations(userId: string): Promise<Recommenda
       }
 
       // Check for shared interests/tags
-      const currentUserTags = currentUser.profile_tags?.map(pt => pt.tags.name) || []
+      const currentUserTags = currentUser.profile_tags?.map((pt: { tags: { name: string } }) => pt.tags.name) || []
       const profileTags = profile.tags.map(t => t.name)
-      const sharedTags = currentUserTags.filter(tag => profileTags.includes(tag))
+      const sharedTags = currentUserTags.filter((tag: string) => profileTags.includes(tag))
       
       if (sharedTags.length > 0) {
         connectionPoints.push(`Shared interests: ${sharedTags.join(', ')}`)
@@ -463,22 +465,22 @@ export async function getProfileById(id: string): Promise<DirectoryProfile | nul
     // Transform the data
     return {
       ...profile,
-      skills: profile.profile_skills?.map(ps => ({
+      skills: profile.profile_skills?.map((ps: { skills: { id: string; name: string }; level: number }) => ({
         id: ps.skills.id,
         name: ps.skills.name,
         level: ps.level
       })) || [],
-      classes: profile.profile_classes?.map(pc => ({
+      classes: profile.profile_classes?.map((pc: { classes: { id: string; code: string; title: string }; role: 'ta' | 'mentor' }) => ({
         id: pc.classes.id,
         code: pc.classes.code,
         title: pc.classes.title,
         role: pc.role
       })) || [],
-      tags: profile.profile_tags?.map(pt => ({
+      tags: profile.profile_tags?.map((pt: { tags: { id: string; name: string } }) => ({
         id: pt.tags.id,
         name: pt.tags.name
       })) || [],
-      projects: profile.projects?.map(p => ({
+      projects: profile.projects?.map((p: { id: string; title: string; summary: string | null; description: string | null; links: Record<string, unknown> | null; visibility: 'public' | 'private' | 'unlisted' }) => ({
         id: p.id,
         title: p.title,
         summary: p.summary,

@@ -3,6 +3,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireActiveUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { Organization, FavoriteTool, Project, Class } from '@/types'
+
+interface DbSkill {
+  name: string
+}
+
+interface DbTag {
+  name: string
+}
+
+interface DbClass {
+  id: string
+  title: string
+  code: string
+  term?: string
+  year?: number
+}
 
 // Get user profile with all related data
 export async function getUserProfile(): Promise<{
@@ -17,20 +34,20 @@ export async function getUserProfile(): Promise<{
   degree?: string | null
   bio?: string | null
   skills: string[]
-  organizations: any[]
+  organizations: Organization[]
   interests: string[]
   hobbiesAndSports: string[]
   canTeach: string[]
   wantToLearn: string[]
-  favoriteTools: any[]
+  favoriteTools: FavoriteTool[]
   contentIngestion: {
     podcasts: string[]
     youtubeChannels: string[]
     influencers: string[]
     newsSources: string[]
   }
-  projects: any[]
-  classes: any[]
+  projects: Project[]
+  classes: Class[]
   linkedinUrl?: string | null
   resumeUrl?: string | null
   personalWebsite?: string | null
@@ -135,9 +152,9 @@ export async function getUserProfile(): Promise<{
     modality: profile.modality || null,
     degree: profile.degree || null,
     bio: profile.bio || null,
-    skills: userSkills?.map(us => (us.skills as any)?.name).filter(Boolean) || [],
+    skills: userSkills?.map((us: { skills: unknown }) => (us.skills as DbSkill)?.name).filter(Boolean) || [],
     organizations: profile.links?.organizations || [],
-    interests: userTags?.map(ut => (ut.tags as any)?.name).filter(Boolean) || [],
+    interests: userTags?.map((ut: { tags: unknown }) => (ut.tags as DbTag)?.name).filter(Boolean) || [],
     hobbiesAndSports: profile.links?.hobbiesAndSports || 
       // Backward compatibility: combine old separate fields if they exist
       [
@@ -163,18 +180,21 @@ export async function getUserProfile(): Promise<{
       technologies: project.links?.technologies || [],
       status: project.links?.status || 'planned'
     })) || [],
-    classes: userClasses?.map(uc => ({
-      id: (uc.classes as any)?.id || '',
-      name: (uc.classes as any)?.title || '',
-      code: (uc.classes as any)?.code || '',
-      semester: (uc.classes as any)?.term ? `${(uc.classes as any).term} ${(uc.classes as any).year}` : null,
-      year: (uc.classes as any)?.year
-    })) || [],
+    classes: userClasses?.map((uc: { classes: unknown }) => {
+      const dbClass = uc.classes as DbClass
+      return {
+        id: dbClass?.id || '',
+        name: dbClass?.title || '',
+        code: dbClass?.code || '',
+        semester: dbClass?.term ? `${dbClass.term} ${dbClass.year || ''}` : null,
+        year: dbClass?.year
+      }
+    }) || [],
     linkedinUrl: profile.links?.linkedin || null,
     resumeUrl: profile.links?.resume || null,
     personalWebsite: profile.links?.personalWebsite || null,
     github: profile.links?.github || null,
-    avatar: profile.avatar_url,
+    avatar: (profile as { avatar_url?: string | null }).avatar_url,
     createdAt: new Date(profile.created_at),
     updatedAt: new Date(profile.updated_at)
   }
@@ -1009,7 +1029,7 @@ export async function updateFavoriteTool(toolId: string, tool: {
   const currentLinks = currentProfile.links || {}
   const favoriteTools = currentLinks.favoriteTools || []
 
-  const updatedTools = favoriteTools.map((t: any) => 
+  const updatedTools = favoriteTools.map((t: FavoriteTool) => 
     t.id === toolId 
       ? { ...t, ...tool }
       : t
@@ -1053,7 +1073,7 @@ export async function removeFavoriteTool(toolId: string) {
 
   const newLinks = {
     ...currentLinks,
-    favoriteTools: favoriteTools.filter((tool: any) => tool.id !== toolId)
+    favoriteTools: favoriteTools.filter((tool: FavoriteTool) => tool.id !== toolId)
   }
 
   const { error } = await supabase
@@ -1193,7 +1213,7 @@ export async function removeOrganization(organizationId: string) {
 
   const newLinks = {
     ...currentLinks,
-    organizations: organizations.filter((org: any) => org.id !== organizationId)
+    organizations: organizations.filter((org: Organization) => org.id !== organizationId)
   }
 
   const { error } = await supabase
@@ -1233,7 +1253,7 @@ export async function updateOrganization(organizationId: string, organization: {
   const currentLinks = currentProfile.links || {}
   const organizations = currentLinks.organizations || []
 
-  const updatedOrganizations = organizations.map((org: any) => 
+  const updatedOrganizations = organizations.map((org: Organization) => 
     org.id === organizationId 
       ? { ...org, ...organization }
       : org
@@ -1259,9 +1279,9 @@ export async function updateOrganization(organizationId: string, organization: {
 // Update favorite tool
 export async function updateTool(toolId: string, tool: {
   name: string
-  description: string
+  description?: string
   categories: string[]
-  link: string
+  link?: string
 }) {
   const user = await requireActiveUser()
   const supabase = await createClient()
@@ -1280,7 +1300,7 @@ export async function updateTool(toolId: string, tool: {
   const currentLinks = currentProfile.links || {}
   const favoriteTools = currentLinks.favoriteTools || []
 
-  const updatedTools = favoriteTools.map((t: any) => 
+  const updatedTools = favoriteTools.map((t: FavoriteTool) => 
     t.id === toolId 
       ? { ...t, ...tool }
       : t

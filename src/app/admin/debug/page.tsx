@@ -7,14 +7,38 @@ import { Input } from "@/components/ui/input"
 import { checkEmailStatus, forceCleanupEmail } from "@/lib/actions/debug-actions"
 import { AlertCircle, CheckCircle, XCircle, Loader2, Mail, User, Shield } from "lucide-react"
 
+interface ProfileData {
+  status?: string
+  role?: string
+  created_at?: string
+}
+
+interface AuthUserData {
+  id?: string
+  created_at?: string
+  last_sign_in_at?: string | null
+}
+
+interface DeletionLog {
+  actor_id?: string
+  created_at?: string
+  metadata?: {
+    deleted_user?: Record<string, unknown>
+  }
+}
+
+interface CleanupResult {
+  message: string
+}
+
 interface EmailStatus {
   email: string
   profileExists: boolean
-  profileData: any
+  profileData: ProfileData | null
   authUserExists: boolean
-  authUserData: any
+  authUserData: AuthUserData | null
   deletionLogged: boolean
-  deletionLog: any
+  deletionLog: DeletionLog | null
   canSignup: boolean
 }
 
@@ -24,7 +48,7 @@ export default function DebugPage() {
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [status, setStatus] = useState<EmailStatus | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [cleanupResult, setCleanupResult] = useState<any>(null)
+  const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null)
 
   const handleCheckStatus = async () => {
     if (!email.trim()) {
@@ -137,7 +161,7 @@ export default function DebugPage() {
                         <div className="text-sm text-red-700">
                           <p><strong>Status:</strong> {status.profileData?.status}</p>
                           <p><strong>Role:</strong> {status.profileData?.role}</p>
-                          <p><strong>Created:</strong> {new Date(status.profileData?.created_at).toLocaleString()}</p>
+                          <p><strong>Created:</strong> {status.profileData?.created_at ? new Date(status.profileData.created_at).toLocaleString() : 'N/A'}</p>
                         </div>
                       ) : (
                         <p className="text-sm text-green-700">No profile found</p>
@@ -160,7 +184,7 @@ export default function DebugPage() {
                       {status.authUserExists ? (
                         <div className="text-sm text-red-700">
                           <p><strong>ID:</strong> {status.authUserData?.id}</p>
-                          <p><strong>Created:</strong> {new Date(status.authUserData?.created_at).toLocaleString()}</p>
+                          <p><strong>Created:</strong> {status.authUserData?.created_at ? new Date(status.authUserData.created_at).toLocaleString() : 'N/A'}</p>
                           <p><strong>Last Sign In:</strong> {status.authUserData?.last_sign_in_at ? new Date(status.authUserData.last_sign_in_at).toLocaleString() : 'Never'}</p>
                         </div>
                       ) : (
@@ -199,9 +223,9 @@ export default function DebugPage() {
                         <span className="font-medium">Deletion Record</span>
                       </div>
                       <div className="text-sm text-blue-700">
-                        <p><strong>Deleted by:</strong> {status.deletionLog.actor_id}</p>
-                        <p><strong>Deleted at:</strong> {new Date(status.deletionLog.created_at).toLocaleString()}</p>
-                        <p><strong>User data:</strong> {JSON.stringify(status.deletionLog.metadata?.deleted_user, null, 2)}</p>
+                        <p><strong>Deleted by:</strong> {status.deletionLog?.actor_id}</p>
+                        <p><strong>Deleted at:</strong> {status.deletionLog?.created_at ? new Date(status.deletionLog.created_at).toLocaleString() : 'N/A'}</p>
+                        <p><strong>User data:</strong> {JSON.stringify(status.deletionLog?.metadata?.deleted_user, null, 2)}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -213,7 +237,7 @@ export default function DebugPage() {
                     <Button 
                       onClick={handleCleanup} 
                       disabled={cleanupLoading}
-                      variant="destructive"
+                      variant="cardinal"
                       className="w-full"
                     >
                       {cleanupLoading ? (

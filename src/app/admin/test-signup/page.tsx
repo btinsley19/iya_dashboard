@@ -7,9 +7,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 
+interface SignupTestResults {
+  authUserCreated: boolean
+  profileCreated: boolean
+  profileData: Record<string, unknown>
+  cohortValue: string | null
+  graduationYearValue: number | null
+  allFields: string[]
+}
+
 export default function TestSignupPage() {
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<any>(null)
+  const [results, setResults] = useState<SignupTestResults | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: "",

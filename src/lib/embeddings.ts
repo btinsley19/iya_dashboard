@@ -92,8 +92,8 @@ export async function updateProfileEmbedding(profileId: string) {
   }
 
   // Build content for embedding
-  const skills = profile.profile_skills?.map((ps: { skills: { name: string } }) => ps.skills.name).join(', ') || ''
-  const tags = profile.profile_tags?.map((pt: { tags: { name: string } }) => pt.tags.name).join(', ') || ''
+  const skills = profile.profile_skills?.map((ps: { skills: { name: unknown }[] }) => (ps.skills[0] as { name: string })?.name).filter(Boolean).join(', ') || ''
+  const tags = profile.profile_tags?.map((pt: { tags: { name: unknown }[] }) => (pt.tags[0] as { name: string })?.name).filter(Boolean).join(', ') || ''
   
   const content = [
     profile.full_name,
@@ -139,7 +139,7 @@ export async function updateProjectEmbedding(projectId: string) {
   }
 
   // Build content for embedding
-  const tags = project.project_tags?.map((pt: { tags: { name: string } }) => pt.tags.name).join(', ') || ''
+  const tags = project.project_tags?.map((pt: { tags: { name: unknown }[] }) => (pt.tags[0] as { name: string })?.name).filter(Boolean).join(', ') || ''
   
   const content = [
     project.title,

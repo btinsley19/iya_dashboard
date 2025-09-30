@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:strict": "eslint --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "deploy-check": "npm run type-check && npm run lint:strict && npm run build"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",

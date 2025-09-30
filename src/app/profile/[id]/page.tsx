@@ -12,7 +12,6 @@ import {
   ExternalLink,
   ArrowLeft,
   Users,
-  Calendar,
   Briefcase,
   Globe,
   Mail,
@@ -22,12 +21,10 @@ import {
   Instagram,
   Lightbulb,
   Home,
-  Wrench,
   Headphones,
   Youtube,
   User,
-  Newspaper,
-  Star
+  Newspaper
 } from "lucide-react"
 import { getProfileById } from "@/lib/actions/directory-actions"
 import { DirectoryProfile } from "@/lib/actions/directory-actions"
@@ -86,7 +83,7 @@ export default function PublicProfile() {
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">Profile Not Found</h3>
           <p className="text-gray-500 mb-4">
-            The profile you're looking for doesn't exist or has been removed.
+            The profile you&apos;re looking for doesn&apos;t exist or has been removed.
           </p>
           <Button onClick={handleBack} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -230,15 +227,9 @@ export default function PublicProfile() {
                             {org.role}
                           </span>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            org.status === 'active' ? 'bg-green-100 text-green-800' : 
-                            org.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                            org.status === 'alumni' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
+                            org.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {org.status === 'inactive' ? 'Inactive' : 
-                             org.status === 'alumni' ? 'Alumni' :
-                             org.status === 'past' ? 'Past' :
-                             org.status}
+                            {org.status === 'active' ? 'Active' : 'Past'}
                           </span>
                         </div>
                       </div>
@@ -292,44 +283,56 @@ export default function PublicProfile() {
                         <h4 className="font-semibold text-gray-900">{project.title}</h4>
                         <p className="text-gray-600 text-sm mt-1">{project.description}</p>
                         <div className="flex items-center space-x-4 mt-2">
-                          {project.links && typeof project.links === 'object' && project.links.status && (
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              project.links.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              project.links.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {project.links.status === 'completed' ? 'Completed' :
-                               project.links.status === 'in-progress' ? 'In Progress' : 'Planned'}
-                            </span>
-                          )}
-                          {project.links && typeof project.links === 'object' && project.links.technologies && Array.isArray(project.links.technologies) && project.links.technologies.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {project.links.technologies.map((tech: string) => (
-                                <span 
-                                  key={tech} 
-                                  className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
-                                >
-                                  {tech}
-                                </span>
-                              ))}
-                            </div>
-                          )}
+                          {(() => {
+                            const projectStatus = project.links && typeof project.links === 'object' ? String(project.links.status || '') : ''
+                            if (!projectStatus) return null
+                            return (
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                projectStatus === 'completed' ? 'bg-green-100 text-green-800' :
+                                projectStatus === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-blue-100 text-blue-800'
+                              }`}>
+                                {projectStatus === 'completed' ? 'Completed' :
+                                 projectStatus === 'in-progress' ? 'In Progress' : 'Planned'}
+                              </span>
+                            )
+                          })()}
+                          {(() => {
+                            const techs = project.links && typeof project.links === 'object' && Array.isArray(project.links.technologies) ? project.links.technologies : []
+                            if (techs.length === 0) return null
+                            return (
+                              <div className="flex flex-wrap gap-1">
+                                {techs.map((tech: unknown) => (
+                                  <span 
+                                    key={String(tech)} 
+                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
+                                  >
+                                    {String(tech)}
+                                  </span>
+                                ))}
+                              </div>
+                            )
+                          })()}
                         </div>
                       </div>
                     </div>
-                    {project.links && typeof project.links === 'object' && project.links.url && (
-                      <div className="mt-2">
-                        <a 
-                          href={project.links.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center space-x-1 text-cardinal hover:text-red-800 text-sm font-medium"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          <span>View Project</span>
-                        </a>
-                      </div>
-                    )}
+                    {(() => {
+                      const projectUrl = project.links && typeof project.links === 'object' ? String(project.links.url || '') : ''
+                      if (!projectUrl) return null
+                      return (
+                        <div className="mt-2">
+                          <a 
+                            href={projectUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center space-x-1 text-cardinal hover:text-red-800 text-sm font-medium"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            <span>View Project</span>
+                          </a>
+                        </div>
+                      )
+                    })()}
                   </div>
                 ))}
               </div>
@@ -372,66 +375,73 @@ export default function PublicProfile() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {profile.links.linkedin && (
-                  <a 
-                    href={profile.links.linkedin as string} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <Linkedin className="h-5 w-5 text-blue-600" />
-                    <span className="text-gray-700">LinkedIn</span>
-                    <ExternalLink className="h-4 w-4 text-cardinal" />
-                  </a>
-                )}
-                {profile.links.github && (
-                  <a 
-                    href={profile.links.github as string} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <Github className="h-5 w-5 text-gray-800" />
-                    <span className="text-gray-700">GitHub</span>
-                    <ExternalLink className="h-4 w-4 text-cardinal" />
-                  </a>
-                )}
-                {profile.links.twitter && (
-                  <a 
-                    href={profile.links.twitter as string} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <Twitter className="h-5 w-5 text-blue-400" />
-                    <span className="text-gray-700">Twitter</span>
-                    <ExternalLink className="h-4 w-4 text-cardinal" />
-                  </a>
-                )}
-                {profile.links.instagram && (
-                  <a 
-                    href={profile.links.instagram as string} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <Instagram className="h-5 w-5 text-pink-500" />
-                    <span className="text-gray-700">Instagram</span>
-                    <ExternalLink className="h-4 w-4 text-cardinal" />
-                  </a>
-                )}
-                {profile.links.website && (
-                  <a 
-                    href={profile.links.website as string} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <Globe className="h-5 w-5 text-gray-600" />
-                    <span className="text-gray-700">Website</span>
-                    <ExternalLink className="h-4 w-4 text-cardinal" />
-                  </a>
-                )}
+                {(() => {
+                  const links = profile.links && typeof profile.links === 'object' && !Array.isArray(profile.links) ? profile.links as Record<string, unknown> : {}
+                  return (
+                    <>
+                      {links.linkedin && (
+                        <a 
+                          href={String(links.linkedin)} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <Linkedin className="h-5 w-5 text-blue-600" />
+                          <span className="text-gray-700">LinkedIn</span>
+                          <ExternalLink className="h-4 w-4 text-cardinal" />
+                        </a>
+                      )}
+                      {links.github && (
+                        <a 
+                          href={String(links.github)} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <Github className="h-5 w-5 text-gray-800" />
+                          <span className="text-gray-700">GitHub</span>
+                          <ExternalLink className="h-4 w-4 text-cardinal" />
+                        </a>
+                      )}
+                      {links.twitter && (
+                        <a 
+                          href={String(links.twitter)} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <Twitter className="h-5 w-5 text-blue-400" />
+                          <span className="text-gray-700">Twitter</span>
+                          <ExternalLink className="h-4 w-4 text-cardinal" />
+                        </a>
+                      )}
+                      {links.instagram && (
+                        <a 
+                          href={String(links.instagram)} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <Instagram className="h-5 w-5 text-pink-500" />
+                          <span className="text-gray-700">Instagram</span>
+                          <ExternalLink className="h-4 w-4 text-cardinal" />
+                        </a>
+                      )}
+                      {links.website && (
+                        <a 
+                          href={String(links.website)} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
+                        >
+                          <Globe className="h-5 w-5 text-gray-600" />
+                          <span className="text-gray-700">Website</span>
+                          <ExternalLink className="h-4 w-4 text-cardinal" />
+                        </a>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             </CardContent>
           </Card>

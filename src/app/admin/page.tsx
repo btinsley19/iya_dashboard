@@ -5,7 +5,7 @@ import { Users, UserCheck, FileText, Tag, Settings, Activity } from 'lucide-reac
 import Link from 'next/link'
 
 export default async function AdminDashboard() {
-  const admin = await requireAdmin()
+  await requireAdmin()
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">

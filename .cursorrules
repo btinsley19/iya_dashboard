@@ -10,6 +10,7 @@ Before starting any task, read these files for context:
 - **Directory_Context.md** - Directory and public profile system
 - **Database_Context.md** - Database schema and data management
 - **CONTEXT_SUMMARY.md** - Quick reference guide
+- **DEPLOYMENT_BEST_PRACTICES.md** - Type safety and deployment guidelines
 
 ## Key Context
 - **Tech Stack**: Next.js 15.5.3, React 19, TypeScript, Tailwind CSS 4, Supabase
@@ -68,7 +69,9 @@ Before starting any task, read these files for context:
 - Use optimistic updates for better UX
 - Follow USC design system and accessibility guidelines
 - Implement proper error handling with rollback
-- Use TypeScript for type safety
+- **STRICT TYPE SAFETY**: NO `any` types allowed - use proper interfaces
+- Run `npm run type-check` frequently during development
+- Run `npm run build` before deploying to catch type errors early
 - Test with demo mode when database not configured
 - Follow existing patterns for consistency
 

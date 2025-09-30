@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
 import { 
   Edit, 
   Save, 
@@ -17,7 +16,6 @@ import {
   Lightbulb, 
   BookOpen, 
   ExternalLink,
-  Upload,
   Plus,
   Trash2,
   Loader2,
@@ -99,12 +97,18 @@ export default function Profile() {
     influencers: "",
     newsSources: ""
   })
-  const [newOrganization, setNewOrganization] = useState({
+  const [newOrganization, setNewOrganization] = useState<{
+    name: string
+    description: string
+    role: 'admin' | 'member'
+    status: 'active' | 'past'
+    type: 'usc' | 'non-usc'
+  }>({
     name: "",
     description: "",
-    role: "member" as const,
-    status: "active" as const,
-    type: "usc" as const
+    role: "member",
+    status: "active",
+    type: "usc"
   })
   const [showProjectModal, setShowProjectModal] = useState(false)
   const [showClassModal, setShowClassModal] = useState(false)
@@ -114,12 +118,18 @@ export default function Profile() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null)
   const [editingTool, setEditingTool] = useState<FavoriteTool | null>(null)
-  const [newProject, setNewProject] = useState({
+  const [newProject, setNewProject] = useState<{
+    title: string
+    description: string
+    url: string
+    technologies: string[]
+    status: 'completed' | 'in-progress' | 'planned'
+  }>({
     title: "",
     description: "",
     url: "",
-    technologies: [] as string[],
-    status: "completed" as const
+    technologies: [],
+    status: "completed"
   })
   const [newClass, setNewClass] = useState({
     classId: "",
@@ -782,16 +792,16 @@ export default function Profile() {
     }
   }
 
-  const handleEditOrganization = (org: any) => {
+  const handleEditOrganization = (org: Organization) => {
     setEditingOrganization(org)
   }
 
-  const handleEditTool = (tool: any) => {
+  const handleEditTool = (tool: FavoriteTool) => {
     setEditingTool(tool)
     setShowToolModal(true)
   }
 
-  const handleUpdateOrganization = async (updatedOrg: any) => {
+  const handleUpdateOrganization = async (updatedOrg: Organization) => {
     if (!user) return
     
     try {
@@ -827,7 +837,7 @@ export default function Profile() {
     setEditingOrganization(null)
   }
 
-  const handleUpdateTool = async (updatedTool: any) => {
+  const handleUpdateTool = async (updatedTool: FavoriteTool) => {
     if (!user) return
     
     try {
@@ -1327,7 +1337,7 @@ export default function Profile() {
       
       // Validate project
       const projectValidation = validateProject(updatedProject)
-      const urlValidation = validateProjectUrl(updatedProject.url)
+      const urlValidation = validateProjectUrl(updatedProject.url || '')
       
       const allErrors: Record<string, string[]> = {}
       if (!projectValidation.isValid) {
@@ -1435,7 +1445,7 @@ export default function Profile() {
     
     const filtered = availableClassesFiltered.filter(classItem => 
       classItem.code.toLowerCase().includes(query.toLowerCase()) ||
-      classItem.title.toLowerCase().includes(query.toLowerCase())
+      classItem.name.toLowerCase().includes(query.toLowerCase())
     )
     setFilteredClasses(filtered)
   }
@@ -1454,9 +1464,9 @@ export default function Profile() {
       
       const classToAdd = {
         id: selectedClass.id,
-        name: selectedClass.title,
+        name: selectedClass.name,
         code: selectedClass.code,
-        semester: selectedClass.term ? `${selectedClass.term} ${selectedClass.year}` : null,
+        semester: selectedClass.semester,
         year: selectedClass.year
       }
       
@@ -2177,12 +2187,11 @@ export default function Profile() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                       <select
                         value={editingOrganization.status}
-                        onChange={(e) => setEditingOrganization((prev) => prev ? ({ ...prev, status: e.target.value as 'active' | 'inactive' | 'alumni' | 'past' }) : null)}
+                        onChange={(e) => setEditingOrganization((prev) => prev ? ({ ...prev, status: e.target.value as 'active' | 'past' }) : null)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                       >
                         <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="alumni">Alumni</option>
+                        <option value="past">Past</option>
                       </select>
                     </div>
                     <div>
@@ -2499,9 +2508,9 @@ export default function Profile() {
                       type="button"
                       onClick={() => {
                         if (newTechnology.trim() && !editingProject.technologies.includes(newTechnology.trim())) {
-                          setEditingProject((prev: any) => ({
-                            ...prev,
-                            technologies: [...prev.technologies, newTechnology.trim()]
+                          setEditingProject((prev) => ({
+                            ...prev!,
+                            technologies: [...prev!.technologies, newTechnology.trim()]
                           }))
                           setNewTechnology('')
                         }
@@ -2563,12 +2572,11 @@ export default function Profile() {
                   </select>
                   <select
                     value={newOrganization.status}
-                    onChange={(e) => setNewOrganization(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' | 'alumni' | 'past' }))}
+                    onChange={(e) => setNewOrganization(prev => ({ ...prev, status: e.target.value as 'active' | 'past' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                   >
                     <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="alumni">Alumni</option>
+                    <option value="past">Past</option>
                   </select>
                   <select
                     value={newOrganization.type}
@@ -3642,7 +3650,7 @@ export default function Profile() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium text-gray-900">{classItem.code}</div>
-                          <div className="text-sm text-gray-600">{classItem.title}</div>
+                          <div className="text-sm text-gray-600">{classItem.name}</div>
                         </div>
                         {newClass.classId === classItem.id && (
                           <Check className="h-5 w-5 text-cardinal" />

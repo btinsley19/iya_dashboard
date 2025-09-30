@@ -218,8 +218,9 @@ export async function deleteUser(userId: string) {
   // Delete user files from storage first
   try {
     // Delete avatar if exists
-    if (userProfile.avatar_url) {
-      const avatarPath = userProfile.avatar_url.split('/').pop()
+    const profileWithAvatar = userProfile as { avatar_url?: string | null }
+    if (profileWithAvatar.avatar_url) {
+      const avatarPath = profileWithAvatar.avatar_url.split('/').pop()
       if (avatarPath) {
         await supabase.storage
           .from('avatars')

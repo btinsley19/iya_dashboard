@@ -33,7 +33,7 @@ export interface Organization {
   name: string
   description: string
   role: 'admin' | 'member'
-  status: 'active' | 'inactive' | 'alumni' | 'past'
+  status: 'active' | 'past'
   type: 'usc' | 'non-usc'
 }
 

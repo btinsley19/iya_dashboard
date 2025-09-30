@@ -21,11 +21,11 @@ export async function checkEmailStatus(email: string) {
       .eq('email', email)
       .single()
 
-    const profileExists = !profileError && profile
+    const profileExists = !profileError && !!profile
 
     // Check if auth user exists (this requires admin access)
     let authUserExists = false
-    let authUserData = null
+    let authUserData: { id?: string; created_at?: string; last_sign_in_at?: string | null } | null = null
     
     try {
       const { data: authUsers, error: authError } = await adminSupabase.auth.admin.listUsers()
@@ -33,23 +33,10 @@ export async function checkEmailStatus(email: string) {
       if (!authError && authUsers) {
         const authUser = authUsers.users.find(user => user.email === email)
         authUserExists = !!authUser
-        authUserData = authUser
+        authUserData = authUser ? { id: authUser.id, created_at: authUser.created_at, last_sign_in_at: authUser.last_sign_in_at } : null
       }
     } catch (authError) {
       console.error('Error checking auth users:', authError)
-    }
-
-    // Also try to get user by email directly (more reliable)
-    if (!authUserExists) {
-      try {
-        const { data: directUser, error: directError } = await adminSupabase.auth.admin.getUserByEmail(email)
-        if (!directError && directUser.user) {
-          authUserExists = true
-          authUserData = directUser.user
-        }
-      } catch (directError) {
-        // This is expected if user doesn't exist
-      }
     }
 
     // Check activity log for deletion record
@@ -99,18 +86,9 @@ export async function forceCleanupEmail(email: string) {
     }
 
     // Get the auth user ID
-    let authUserId = status.authUserData?.id
+    const authUserId = status.authUserData?.id
     if (!authUserId) {
-      // Try to get user by email directly
-      try {
-        const { data: directUser, error: directError } = await adminSupabase.auth.admin.getUserByEmail(email)
-        if (directError || !directUser.user) {
-          throw new Error('Could not find auth user by email')
-        }
-        authUserId = directUser.user.id
-      } catch (directError) {
-        throw new Error('Could not find auth user ID')
-      }
+      throw new Error('Could not find auth user ID')
     }
 
     // Delete the auth user

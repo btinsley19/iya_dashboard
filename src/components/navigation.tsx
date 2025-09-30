@@ -7,22 +7,28 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { 
   Search, 
-  User,
+  User as UserIcon,
   GraduationCap,
   LogOut
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import type { User } from '@supabase/supabase-js'
+
+interface UserProfile {
+  status: string
+  role: string
+}
 
 const navigation = [
   { name: "Directory", href: "/directory", icon: Search },
-  { name: "Profile", href: "/profile", icon: User },
+  { name: "Profile", href: "/profile", icon: UserIcon },
 ]
 
 export function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const supabase = createClient()
 
   useEffect(() => {

@@ -15,7 +15,7 @@ interface AvatarCropperProps {
 export function AvatarCropper({ imageSrc, onCropComplete, onCancel, loading = false }: AvatarCropperProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
 
   const onCropChange = useCallback((crop: { x: number; y: number }) => {
     setCrop(crop)
@@ -25,7 +25,7 @@ export function AvatarCropper({ imageSrc, onCropComplete, onCancel, loading = fa
     setZoom(zoom)
   }, [])
 
-  const onCropCompleteCallback = useCallback((croppedArea: any, croppedAreaPixels: any) => {
+  const onCropCompleteCallback = useCallback((_croppedArea: unknown, croppedAreaPixels: { x: number; y: number; width: number; height: number }) => {
     setCroppedAreaPixels(croppedAreaPixels)
   }, [])
 

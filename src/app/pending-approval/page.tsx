@@ -6,10 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { GraduationCap, Clock, Mail, LogOut } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import type { User } from '@supabase/supabase-js'
+
+interface UserProfile {
+  status: string
+  role: string
+}
 
 export default function PendingApproval() {
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -96,7 +102,7 @@ export default function PendingApproval() {
               <div>
                 <h3 className="font-medium text-gray-900">Email Notification</h3>
                 <p className="text-sm text-gray-600">
-                  You'll receive an email once your account is approved.
+                  You&apos;ll receive an email once your account is approved.
                 </p>
               </div>
             </div>
@@ -106,7 +112,7 @@ export default function PendingApproval() {
               <div>
                 <h3 className="font-medium text-gray-900">Full Access</h3>
                 <p className="text-sm text-gray-600">
-                  Once approved, you'll have access to all features including the directory and profile management.
+                  Once approved, you&apos;ll have access to all features including the directory and profile management.
                 </p>
               </div>
             </div>
