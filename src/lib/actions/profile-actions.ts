@@ -184,7 +184,7 @@ export async function getUserProfile(): Promise<{
       const dbClass = uc.classes as DbClass
       return {
         id: dbClass?.id || '',
-        name: dbClass?.title || '',
+        title: dbClass?.title || '',
         code: dbClass?.code || '',
         semester: dbClass?.term ? `${dbClass.term} ${dbClass.year || ''}` : null,
         year: dbClass?.year

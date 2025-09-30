@@ -7,7 +7,7 @@ export function Footer() {
         <div className="text-center space-y-3">
         <p className="text-gray-700 max-w-2xl mx-auto">
             This app was built to strengthen the Iovine and Young Academy community. Reach out if you have any questions 
-            and be sure to share this with other students!
+            or feedback, and be sure to share this with other students!
           </p>
           
           <div className="flex items-center justify-center space-x-2">

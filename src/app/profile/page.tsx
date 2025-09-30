@@ -117,6 +117,7 @@ export default function Profile() {
   const [showOrganizationModal, setShowOrganizationModal] = useState(false)
   const [showToolModal, setShowToolModal] = useState(false)
   const [availableClasses, setAvailableClasses] = useState<Class[]>([])
+  const [loadingClasses, setLoadingClasses] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null)
   const [editingTool, setEditingTool] = useState<FavoriteTool | null>(null)
@@ -291,25 +292,25 @@ export default function Profile() {
           classes: [
             {
               id: "demo-class-1",
-              name: "Professional Practices Residential",
+              title: "Professional Practices Residential",
               code: "IDSN 515",
               semester: "Fall 2024"
             },
             {
               id: "demo-class-2",
-              name: "Business Essentials",
+              title: "Business Essentials",
               code: "IDSN 525",
               semester: "Spring 2025"
             },
             {
               id: "demo-class-3",
-              name: "Innovators Forum",
+              title: "Innovators Forum",
               code: "ACAD 174",
               semester: "Fall 2023"
             },
             {
               id: "demo-class-4",
-              name: "Rapid Visualization",
+              title: "Rapid Visualization",
               code: "ACAD 176",
               semester: "Spring 2024"
             }
@@ -1413,6 +1414,7 @@ export default function Profile() {
   // Class management handlers
   const loadAvailableClasses = async () => {
     try {
+      setLoadingClasses(true)
       console.log('Loading available classes...')
       const classes = await getAvailableClasses()
       console.log('Loaded classes:', classes.length, classes.slice(0, 5))
@@ -1427,6 +1429,8 @@ export default function Profile() {
     } catch (err) {
       console.error('Error loading classes:', err)
       setError(err instanceof Error ? err.message : 'Failed to load classes')
+    } finally {
+      setLoadingClasses(false)
     }
   }
 
@@ -1447,7 +1451,7 @@ export default function Profile() {
     
     const filtered = availableClassesFiltered.filter(classItem => 
       classItem.code.toLowerCase().includes(query.toLowerCase()) ||
-      classItem.name.toLowerCase().includes(query.toLowerCase())
+      classItem.title.toLowerCase().includes(query.toLowerCase())
     )
     setFilteredClasses(filtered)
   }
@@ -1466,7 +1470,7 @@ export default function Profile() {
       
       const classToAdd = {
         id: selectedClass.id,
-        name: selectedClass.name,
+        title: selectedClass.title,
         code: selectedClass.code,
         semester: selectedClass.semester,
         year: selectedClass.year
@@ -3429,9 +3433,9 @@ export default function Profile() {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
+                      await loadAvailableClasses()
                       setShowClassModal(true)
-                      loadAvailableClasses()
                     }}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -3455,8 +3459,8 @@ export default function Profile() {
                 <div key={classItem.id} className="border border-gray-200 rounded-lg p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{classItem.name}</h3>
-                  <p className="text-sm text-gray-600">{classItem.code}</p>
+                  <h3 className="font-semibold text-gray-900">{classItem.code} - {classItem.title}</h3>
+                  <p className="text-sm text-gray-600">{classItem.instructor ? `Instructor: ${classItem.instructor}` : ''}</p>
                   <div className="flex items-center justify-between mt-2">
                     {classItem.semester && (
                       <span className="text-xs text-gray-500">{classItem.semester}</span>
@@ -3635,7 +3639,12 @@ export default function Profile() {
 
             {/* Class Results */}
             <div className="flex-1 overflow-y-auto border border-gray-200 rounded-lg">
-              {filteredClasses.length === 0 ? (
+              {loadingClasses ? (
+                <div className="p-4 text-center text-gray-500">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                  <p>Loading classes...</p>
+                </div>
+              ) : filteredClasses.length === 0 ? (
                 <div className="p-4 text-center text-gray-500">
                   {classSearchQuery ? 'No classes found matching your search.' : 'Start typing to search for classes...'}
                 </div>
@@ -3652,7 +3661,7 @@ export default function Profile() {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium text-gray-900">{classItem.code}</div>
-                          <div className="text-sm text-gray-600">{classItem.name}</div>
+                          <div className="text-sm text-gray-600">{classItem.title}</div>
                         </div>
                         {newClass.classId === classItem.id && (
                           <Check className="h-5 w-5 text-cardinal" />

@@ -63,11 +63,13 @@ export interface Project {
 
 export interface Class {
   id: string
-  name: string
+  title: string
   code: string
-  instructor?: string | null
-  semester?: string | null
-  year?: number
+  instructors?: string | null  // Comma-separated list from database
+  term?: string | null  // Database uses 'term' not 'semester'
+  year?: number | null
+  semester?: string | null  // Computed field for display
+  instructor?: string | null  // Computed field for display
 }
 
 export interface Community {
