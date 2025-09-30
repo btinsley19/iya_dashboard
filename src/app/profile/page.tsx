@@ -24,7 +24,7 @@ import {
   Home,
   Camera
 } from "lucide-react"
-import { User } from "@/types"
+import { User, Project, Organization, FavoriteTool, Class } from "@/types"
 import { 
   getUserProfile, 
   updateProfile, 
@@ -110,10 +110,10 @@ export default function Profile() {
   const [showClassModal, setShowClassModal] = useState(false)
   const [showOrganizationModal, setShowOrganizationModal] = useState(false)
   const [showToolModal, setShowToolModal] = useState(false)
-  const [availableClasses, setAvailableClasses] = useState<any[]>([])
-  const [editingProject, setEditingProject] = useState<any>(null)
-  const [editingOrganization, setEditingOrganization] = useState<any>(null)
-  const [editingTool, setEditingTool] = useState<any>(null)
+  const [availableClasses, setAvailableClasses] = useState<Class[]>([])
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [editingOrganization, setEditingOrganization] = useState<Organization | null>(null)
+  const [editingTool, setEditingTool] = useState<FavoriteTool | null>(null)
   const [newProject, setNewProject] = useState({
     title: "",
     description: "",
@@ -126,7 +126,7 @@ export default function Profile() {
     role: "mentor" as const
   })
   const [classSearchQuery, setClassSearchQuery] = useState("")
-  const [filteredClasses, setFilteredClasses] = useState<any[]>([])
+  const [filteredClasses, setFilteredClasses] = useState<Class[]>([])
   const [newTechnology, setNewTechnology] = useState("")
   const [uploadingResume, setUploadingResume] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -1315,11 +1315,11 @@ export default function Profile() {
     }
   }
 
-  const handleEditProject = (project: any) => {
+  const handleEditProject = (project: Project) => {
     setEditingProject(project)
   }
 
-  const handleUpdateProject = async (updatedProject: any) => {
+  const handleUpdateProject = async (updatedProject: Project) => {
     if (!user) return
     
     try {
@@ -1914,7 +1914,7 @@ export default function Profile() {
                 {isEditingSection('basicInfo') ? (
                   <select
                     value={user.modality || ""}
-                    onChange={(e) => setUser(prev => prev ? ({ ...prev, modality: e.target.value as any }) : null)}
+                    onChange={(e) => setUser(prev => prev ? ({ ...prev, modality: e.target.value as 'in-person' | 'online' | 'hybrid' }) : null)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal"
                   >
                     <option value="">Select modality...</option>
@@ -2149,7 +2149,7 @@ export default function Profile() {
                       <input
                         type="text"
                         value={editingOrganization.name}
-                        onChange={(e) => setEditingOrganization((prev: any) => ({ ...prev, name: e.target.value }))}
+                        onChange={(e) => setEditingOrganization((prev) => prev ? ({ ...prev, name: e.target.value }) : null)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                       />
                     </div>
@@ -2157,7 +2157,7 @@ export default function Profile() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                       <textarea
                         value={editingOrganization.description}
-                        onChange={(e) => setEditingOrganization((prev: any) => ({ ...prev, description: e.target.value }))}
+                        onChange={(e) => setEditingOrganization((prev) => prev ? ({ ...prev, description: e.target.value }) : null)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                         rows={3}
                       />
@@ -2166,7 +2166,7 @@ export default function Profile() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                       <select
                         value={editingOrganization.role}
-                        onChange={(e) => setEditingOrganization((prev: any) => ({ ...prev, role: e.target.value as any }))}
+                        onChange={(e) => setEditingOrganization((prev) => prev ? ({ ...prev, role: e.target.value as 'admin' | 'member' }) : null)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                       >
                         <option value="member">Member</option>
@@ -2177,7 +2177,7 @@ export default function Profile() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                       <select
                         value={editingOrganization.status}
-                        onChange={(e) => setEditingOrganization((prev: any) => ({ ...prev, status: e.target.value as any }))}
+                        onChange={(e) => setEditingOrganization((prev) => prev ? ({ ...prev, status: e.target.value as 'active' | 'inactive' | 'alumni' | 'past' }) : null)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                       >
                         <option value="active">Active</option>
@@ -2189,7 +2189,7 @@ export default function Profile() {
                       <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                       <select
                         value={editingOrganization.type}
-                        onChange={(e) => setEditingOrganization((prev: any) => ({ ...prev, type: e.target.value as any }))}
+                        onChange={(e) => setEditingOrganization((prev) => prev ? ({ ...prev, type: e.target.value as 'usc' | 'non-usc' }) : null)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                       >
                         <option value="usc">USC</option>
@@ -2422,7 +2422,7 @@ export default function Profile() {
                   <input
                     type="text"
                     value={editingProject.title}
-                    onChange={(e) => setEditingProject((prev: any) => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) => setEditingProject((prev) => prev ? ({ ...prev, title: e.target.value }) : null)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                   />
                 </div>
@@ -2430,7 +2430,7 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                   <textarea
                     value={editingProject.description}
-                    onChange={(e) => setEditingProject((prev: any) => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) => setEditingProject((prev) => prev ? ({ ...prev, description: e.target.value }) : null)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                     rows={3}
                   />
@@ -2440,7 +2440,7 @@ export default function Profile() {
                   <input
                     type="url"
                     value={editingProject.url}
-                    onChange={(e) => setEditingProject((prev: any) => ({ ...prev, url: e.target.value }))}
+                    onChange={(e) => setEditingProject((prev) => prev ? ({ ...prev, url: e.target.value }) : null)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                     placeholder="https://example.com"
                   />
@@ -2449,7 +2449,7 @@ export default function Profile() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select
                     value={editingProject.status}
-                    onChange={(e) => setEditingProject((prev: any) => ({ ...prev, status: e.target.value as any }))}
+                    onChange={(e) => setEditingProject((prev) => prev ? ({ ...prev, status: e.target.value as 'completed' | 'in-progress' | 'planned' }) : null)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                   >
                     <option value="completed">Completed</option>
@@ -2464,10 +2464,10 @@ export default function Profile() {
                       <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded flex items-center space-x-1">
                         <span>{tech}</span>
                         <button
-                          onClick={() => setEditingProject((prev: any) => ({
+                          onClick={() => setEditingProject((prev) => prev ? ({
                             ...prev,
-                            technologies: prev.technologies.filter((_: any, i: number) => i !== index)
-                          }))}
+                            technologies: prev.technologies.filter((_, i: number) => i !== index)
+                          }) : null)}
                           className="text-gray-500 hover:text-red-500"
                         >
                           ×
@@ -2484,10 +2484,10 @@ export default function Profile() {
                         if (e.key === 'Enter') {
                           e.preventDefault()
                           if (newTechnology.trim() && !editingProject.technologies.includes(newTechnology.trim())) {
-                            setEditingProject((prev: any) => ({
+                            setEditingProject((prev) => prev ? ({
                               ...prev,
                               technologies: [...prev.technologies, newTechnology.trim()]
-                            }))
+                            }) : null)
                             setNewTechnology('')
                           }
                         }
@@ -2555,7 +2555,7 @@ export default function Profile() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <select
                     value={newOrganization.role}
-                    onChange={(e) => setNewOrganization(prev => ({ ...prev, role: e.target.value as any }))}
+                    onChange={(e) => setNewOrganization(prev => ({ ...prev, role: e.target.value as 'admin' | 'member' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                   >
                     <option value="member">Member</option>
@@ -2563,7 +2563,7 @@ export default function Profile() {
                   </select>
                   <select
                     value={newOrganization.status}
-                    onChange={(e) => setNewOrganization(prev => ({ ...prev, status: e.target.value as any }))}
+                    onChange={(e) => setNewOrganization(prev => ({ ...prev, status: e.target.value as 'active' | 'inactive' | 'alumni' | 'past' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                   >
                     <option value="active">Active</option>
@@ -2572,7 +2572,7 @@ export default function Profile() {
                   </select>
                   <select
                     value={newOrganization.type}
-                    onChange={(e) => setNewOrganization(prev => ({ ...prev, type: e.target.value as any }))}
+                    onChange={(e) => setNewOrganization(prev => ({ ...prev, type: e.target.value as 'usc' | 'non-usc' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal text-sm"
                   >
                     <option value="usc">USC</option>
@@ -2612,9 +2612,9 @@ export default function Profile() {
                     value={editingTool ? editingTool.name : newFavoriteTool.name}
                     onChange={(e) => {
                       if (editingTool) {
-                        setEditingTool((prev: any) => ({ ...prev, name: e.target.value }))
+                        setEditingTool((prev) => prev ? ({ ...prev, name: e.target.value }) : null)
                       } else {
-                        setNewFavoriteTool((prev: any) => ({ ...prev, name: e.target.value }))
+                        setNewFavoriteTool((prev) => ({ ...prev, name: e.target.value }))
                       }
                     }}
                     placeholder="Tool name"
@@ -2624,9 +2624,9 @@ export default function Profile() {
                     value={editingTool ? editingTool.link : newFavoriteTool.link}
                     onChange={(e) => {
                       if (editingTool) {
-                        setEditingTool((prev: any) => ({ ...prev, link: e.target.value }))
+                        setEditingTool((prev) => prev ? ({ ...prev, link: e.target.value }) : null)
                       } else {
-                        setNewFavoriteTool((prev: any) => ({ ...prev, link: e.target.value }))
+                        setNewFavoriteTool((prev) => ({ ...prev, link: e.target.value }))
                       }
                     }}
                     placeholder="Link (optional)"
@@ -2638,9 +2638,9 @@ export default function Profile() {
                     value={editingTool ? editingTool.description : newFavoriteTool.description}
                     onChange={(e) => {
                       if (editingTool) {
-                        setEditingTool((prev: any) => ({ ...prev, description: e.target.value }))
+                        setEditingTool((prev) => prev ? ({ ...prev, description: e.target.value }) : null)
                       } else {
-                        setNewFavoriteTool((prev: any) => ({ ...prev, description: e.target.value }))
+                        setNewFavoriteTool((prev) => ({ ...prev, description: e.target.value }))
                       }
                     }}
                     placeholder="Description (optional)"
@@ -2656,10 +2656,10 @@ export default function Profile() {
                         <button
                           onClick={() => {
                             if (editingTool) {
-                              setEditingTool((prev: any) => ({
+                              setEditingTool((prev) => prev ? ({
                                 ...prev,
                                 categories: prev.categories.filter((c: string) => c !== category)
-                              }))
+                              }) : null)
                             } else {
                               handleRemoveToolCategory(category)
                             }
@@ -2689,10 +2689,10 @@ export default function Profile() {
                       onClick={() => {
                         if (editingTool) {
                           if (newToolCategory.trim() && !editingTool.categories.includes(newToolCategory.trim())) {
-                            setEditingTool((prev: any) => ({
+                            setEditingTool((prev) => prev ? ({
                               ...prev,
                               categories: [...prev.categories, newToolCategory.trim()]
-                            }))
+                            }) : null)
                             setNewToolCategory("")
                           }
                         } else {
@@ -3570,7 +3570,7 @@ export default function Profile() {
                 </label>
                 <select
                   value={newProject.status}
-                  onChange={(e) => setNewProject(prev => ({ ...prev, status: e.target.value as any }))}
+                  onChange={(e) => setNewProject(prev => ({ ...prev, status: e.target.value as 'completed' | 'in-progress' | 'planned' }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cardinal"
                 >
                   <option value="completed">Completed</option>

@@ -1,5 +1,4 @@
 import { updateSession } from '@/lib/supabase/middleware'
-import { NextResponse } from 'next/server'
 
 export async function middleware(request: Request) {
   const { pathname } = new URL(request.url)

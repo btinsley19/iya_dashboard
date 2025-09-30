@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 
 // This is a placeholder for the embedding generation
 // In a real implementation, you would integrate with OpenAI, Cohere, or another embedding service
-export async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(_text: string): Promise<number[]> {
   // Placeholder: return a random vector for demonstration
   // In production, you would call an embedding API like:
   // const response = await fetch('https://api.openai.com/v1/embeddings', {
@@ -28,7 +28,7 @@ export async function createDocumentEmbedding(
   entityId: string,
   title: string,
   content: string,
-  metadata: any = {}
+  metadata: Record<string, unknown> = {}
 ) {
   const supabase = await createClient()
 
@@ -92,8 +92,8 @@ export async function updateProfileEmbedding(profileId: string) {
   }
 
   // Build content for embedding
-  const skills = profile.profile_skills?.map((ps: any) => ps.skills.name).join(', ') || ''
-  const tags = profile.profile_tags?.map((pt: any) => pt.tags.name).join(', ') || ''
+  const skills = profile.profile_skills?.map((ps: { skills: { name: string } }) => ps.skills.name).join(', ') || ''
+  const tags = profile.profile_tags?.map((pt: { tags: { name: string } }) => pt.tags.name).join(', ') || ''
   
   const content = [
     profile.full_name,
@@ -139,7 +139,7 @@ export async function updateProjectEmbedding(projectId: string) {
   }
 
   // Build content for embedding
-  const tags = project.project_tags?.map((pt: any) => pt.tags.name).join(', ') || ''
+  const tags = project.project_tags?.map((pt: { tags: { name: string } }) => pt.tags.name).join(', ') || ''
   
   const content = [
     project.title,
@@ -237,7 +237,7 @@ export async function updateEventEmbedding(eventId: string) {
 export async function semanticVectorSearch(
   query: string,
   limit: number = 20
-): Promise<any[]> {
+): Promise<Array<Record<string, unknown>>> {
   const supabase = await createClient()
 
   // Generate embedding for the query
