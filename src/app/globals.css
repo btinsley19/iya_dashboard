@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --cardinal: #990000;
+  --gold: #FFCC00;
+  --cardinal-light: #b30000;
+  --cardinal-dark: #7a0000;
+  --gold-light: #ffd633;
+  --gold-dark: #e6b800;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-cardinal: var(--cardinal);
+  --color-gold: var(--gold);
+  --color-cardinal-light: var(--cardinal-light);
+  --color-cardinal-dark: var(--cardinal-dark);
+  --color-gold-light: var(--gold-light);
+  --color-gold-dark: var(--gold-dark);
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* USC Theme Utilities */
+.text-cardinal {
+  color: var(--cardinal);
+}
+
+.text-gold {
+  color: var(--gold);
+}
+
+.bg-cardinal {
+  background-color: var(--cardinal);
+}
+
+.bg-gold {
+  background-color: var(--gold);
+}
+
+.border-cardinal {
+  border-color: var(--cardinal);
+}
+
+.border-gold {
+  border-color: var(--gold);
+}
+
+.hover\:bg-cardinal-light:hover {
+  background-color: var(--cardinal-light);
+}
+
+.hover\:bg-gold-light:hover {
+  background-color: var(--gold-light);
+}
+
+/* Custom scrollbar hiding */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Line clamping utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
