@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     siteName: "IYA Networking Tool",
     images: [
       {
-        url: "/opengraph-image",
+        url: "/opengraph-image.png",
         width: 1200,
         height: 630,
         alt: "IYA Networking Tool",
