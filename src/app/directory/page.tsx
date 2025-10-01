@@ -133,34 +133,30 @@ export default function Directory() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Filters Sidebar */}
         <div className="lg:col-span-1">
-          {/* Mobile Filters Toggle */}
-          <div className="lg:hidden mb-4">
-            <Button
+          {/* Unified Filters Card */}
+          <Card className="overflow-hidden">
+            {/* Mobile/Desktop Header - Always visible */}
+            <CardHeader 
+              className={`cursor-pointer py-3 ${filtersExpanded ? 'border-b' : ''}`}
               onClick={() => setFiltersExpanded(!filtersExpanded)}
-              variant="outline"
-              className="w-full flex items-center justify-between"
             >
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-cardinal" />
-                <span>Filters</span>
-              </div>
-              {filtersExpanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-
-          {/* Filters Card */}
-          <Card className={`lg:block ${filtersExpanded ? 'block' : 'hidden'}`}>
-            <CardHeader className="hidden lg:block">
-              <CardTitle className="flex items-center space-x-2">
-                <Filter className="h-5 w-5 text-cardinal" />
-                <span>Filters</span>
+              <CardTitle className="flex items-center justify-between text-base">
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-cardinal" />
+                  <span>Filters</span>
+                </div>
+                <div className="lg:hidden">
+                  {filtersExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            
+            {/* Filter Content */}
+            <CardContent className={`space-y-4 py-4 ${filtersExpanded ? 'block' : 'hidden lg:block'}`}>
               {/* Search */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

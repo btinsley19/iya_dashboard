@@ -3,6 +3,7 @@
 import { useState, useRef } from "react"
 import { Button } from "./button"
 import { Upload, X, File, Image, Loader2 } from "lucide-react"
+import imageCompression from "browser-image-compression"
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void
@@ -25,6 +26,7 @@ export function FileUpload({
 }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [compressing, setCompressing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleDrag = (e: React.DragEvent) => {
@@ -37,26 +39,21 @@ export function FileUpload({
     }
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0])
+      await handleFile(e.dataTransfer.files[0])
     }
   }
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     setError(null)
+    setCompressing(false)
     
-    // Validate file size
-    if (file.size > maxSize * 1024 * 1024) {
-      setError(`File must be smaller than ${maxSize}MB`)
-      return
-    }
-
-    // Validate file type
+    // Validate file type first
     if (type === 'resume' && file.type !== 'application/pdf') {
       setError('Resume must be a PDF file')
       return
@@ -67,12 +64,64 @@ export function FileUpload({
       return
     }
 
-    onFileSelect(file)
+    // For resumes, use original file
+    if (type === 'resume') {
+      // Validate file size for resumes
+      if (file.size > maxSize * 1024 * 1024) {
+        setError(`Resume must be smaller than ${maxSize}MB`)
+        return
+      }
+      onFileSelect(file)
+      return
+    }
+
+    // For avatar images, try to compress the image
+    if (type === 'avatar') {
+      setCompressing(true)
+      
+      // First check if file is already small enough (under 2MB)
+      if (file.size <= 2 * 1024 * 1024) {
+        console.log('File is already small enough, using original')
+        setCompressing(false)
+        onFileSelect(file)
+        return
+      }
+      
+      try {
+        console.log('Starting image compression for file:', file.name, 'Size:', file.size, 'Type:', file.type)
+        
+        const options = {
+          maxSizeMB: 1, // Target 1MB
+          maxWidthOrHeight: 1024, // Max 1024px
+          useWebWorker: false, // Disable web worker to avoid issues
+          fileType: 'image/jpeg',
+          initialQuality: 0.8,
+        }
+        
+        const compressedFile = await imageCompression(file, options)
+        console.log('Compression successful. Original:', file.size, 'Compressed:', compressedFile.size)
+        
+        setCompressing(false)
+        onFileSelect(compressedFile)
+      } catch (error) {
+        console.error('Image compression failed:', error)
+        
+        // Fallback: use original file if it's under 5MB
+        if (file.size <= 5 * 1024 * 1024) {
+          console.log('Using original file as fallback (under 5MB)')
+          setCompressing(false)
+          onFileSelect(file)
+        } else {
+          setCompressing(false)
+          setError('Image is too large. Please try a smaller image (under 5MB) or use a different file format.')
+        }
+      }
+    }
   }
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0])
+      await handleFile(e.target.files[0])
     }
   }
 
@@ -152,7 +201,7 @@ export function FileUpload({
               <p className="text-xs text-gray-500 mt-1">
                 {type === 'resume' 
                   ? 'PDF files up to 5MB'
-                  : 'Image files up to 2MB'
+                  : 'Any image file (auto-compressed)'
                 }
               </p>
             </div>
@@ -161,14 +210,14 @@ export function FileUpload({
               size="sm"
               onClick={openFileDialog}
               className="mt-3"
-              disabled={loading}
+              disabled={loading || compressing}
             >
-              {loading ? (
+              {loading || compressing ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Upload className="h-4 w-4 mr-2" />
               )}
-              Choose File
+              {compressing ? 'Compressing...' : 'Choose File'}
             </Button>
             <p className="text-xs text-gray-400 mt-2">
               or drag and drop

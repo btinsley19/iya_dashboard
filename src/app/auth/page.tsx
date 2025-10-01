@@ -259,7 +259,7 @@ export default function Auth() {
             <GraduationCap className="h-12 w-12 text-cardinal" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {isForgotPassword ? "Reset Password" : (isLogin ? "Welcome back" : "Join the IYA Community")}
+            {isForgotPassword ? "Reset Password" : (isLogin ? "Welcome Back" : "Join the IYA Community")}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             {isForgotPassword 
