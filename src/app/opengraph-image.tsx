@@ -52,7 +52,7 @@ export default async function Image() {
                 fontWeight: 'bold',
               }}
             >
-              🎓
+              USC
             </div>
           </div>
           <div>
@@ -125,7 +125,7 @@ export default async function Image() {
                 color: '#4a5568',
               }}
             >
-              📧 your.email@usc.edu
+              your.email@usc.edu
             </div>
             <div
               style={{
@@ -136,7 +136,7 @@ export default async function Image() {
                 color: '#4a5568',
               }}
             >
-              🔒 ••••••••
+              ••••••••
             </div>
             <div
               style={{
