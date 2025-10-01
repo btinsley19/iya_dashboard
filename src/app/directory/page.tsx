@@ -137,10 +137,15 @@ export default function Directory() {
           <Card className="overflow-hidden">
             {/* Mobile/Desktop Header - Always visible */}
             <CardHeader 
-              className={`cursor-pointer py-3 ${filtersExpanded ? 'border-b' : ''}`}
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
+              className={`lg:cursor-default cursor-pointer py-3 ${filtersExpanded ? 'border-b' : ''}`}
+              onClick={(e) => {
+                // Only toggle on mobile
+                if (window.innerWidth < 1024) {
+                  setFiltersExpanded(!filtersExpanded)
+                }
+              }}
             >
-              <CardTitle className="flex items-center justify-between text-base">
+              <CardTitle className="flex items-center justify-between text-base font-normal">
                 <div className="flex items-center space-x-2">
                   <Filter className="h-4 w-4 text-cardinal" />
                   <span>Filters</span>
