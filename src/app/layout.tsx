@@ -18,12 +18,12 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://iya-dashboard-1eaz.vercel.app'),
-  title: "IYA Networking Tool - USC Student Network",
+  title: "IYA Networking Tool",
   description: "Connect, collaborate, and grow with fellow USC students. Find cofounders, collaborators, and friends in the IYA community.",
   keywords: ["USC", "IYA", "networking", "students", "collaboration", "Iovine Young Academy"],
   authors: [{ name: "USC Iovine & Young Academy" }],
   openGraph: {
-    title: "IYA Networking Tool - USC Student Network",
+    title: "IYA Networking Tool",
     description: "Connect, collaborate, and grow with fellow USC students. Find cofounders, collaborators, and friends in the IYA community.",
     url: "https://iya-dashboard-1eaz.vercel.app",
     siteName: "IYA Networking Tool",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "IYA Networking Tool - USC Student Network",
+        alt: "IYA Networking Tool",
       },
     ],
     locale: "en_US",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "IYA Networking Tool - USC Student Network",
+    title: "IYA Networking Tool",
     description: "Connect, collaborate, and grow with fellow USC students. Find cofounders, collaborators, and friends in the IYA community.",
     images: ["/opengraph-image"],
   },
