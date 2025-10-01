@@ -376,7 +376,7 @@ export default function Auth() {
                       <select
                         value={formData.cohort}
                         onChange={(e) => handleInputChange("cohort", e.target.value)}
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-cardinal focus:outline-none focus:ring-1 focus:ring-cardinal"
+                        className="w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-cardinal focus:outline-none focus:ring-1 focus:ring-cardinal"
                         required
                       >
                         <option value="">Select Cohort</option>

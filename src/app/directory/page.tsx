@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Filter, GraduationCap, Code, Users, BookOpen, Grid3X3, List, MapPin, Home } from "lucide-react"
+import { Search, Filter, GraduationCap, Code, Users, BookOpen, Grid3X3, List, MapPin, Home, ChevronDown, ChevronUp } from "lucide-react"
 import { 
   getDirectoryProfiles, 
   DirectoryProfile,
@@ -23,6 +23,7 @@ export default function Directory() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
 
   // Check authentication immediately on component mount
   useEffect(() => {
@@ -132,8 +133,28 @@ export default function Directory() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Filters Sidebar */}
         <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
+          {/* Mobile Filters Toggle */}
+          <div className="lg:hidden mb-4">
+            <Button
+              onClick={() => setFiltersExpanded(!filtersExpanded)}
+              variant="outline"
+              className="w-full flex items-center justify-between"
+            >
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-cardinal" />
+                <span>Filters</span>
+              </div>
+              {filtersExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+
+          {/* Filters Card */}
+          <Card className={`lg:block ${filtersExpanded ? 'block' : 'hidden'}`}>
+            <CardHeader className="hidden lg:block">
               <CardTitle className="flex items-center space-x-2">
                 <Filter className="h-5 w-5 text-cardinal" />
                 <span>Filters</span>
@@ -190,7 +211,7 @@ export default function Directory() {
                 <select
                   value={selectedCohort}
                   onChange={(e) => setSelectedCohort(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-cardinal focus:outline-none focus:ring-1 focus:ring-cardinal"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-base focus:border-cardinal focus:outline-none focus:ring-1 focus:ring-cardinal"
                 >
                   <option value="">All Cohorts</option>
                   {allCohorts.map((cohort) => (
