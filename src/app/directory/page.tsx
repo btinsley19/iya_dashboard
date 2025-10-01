@@ -376,18 +376,21 @@ export default function Directory() {
                               {profile.cohort}
                             </span>
                           )}
-                          {profile.location && (
-                            <span className="flex items-center">
-                              <MapPin className="h-4 w-4 mr-1" />
-                              {profile.location}
-                            </span>
-                          )}
-                          {profile.hometown && (
-                            <span className="flex items-center">
-                              <Home className="h-4 w-4 mr-1" />
-                              {profile.hometown}
-                            </span>
-                          )}
+                          {/* Hide location and hometown on mobile for list view */}
+                          <div className="hidden md:flex items-center space-x-4">
+                            {profile.location && (
+                              <span className="flex items-center">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                {profile.location}
+                              </span>
+                            )}
+                            {profile.hometown && (
+                              <span className="flex items-center">
+                                <Home className="h-4 w-4 mr-1" />
+                                {profile.hometown}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       

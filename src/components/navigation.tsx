@@ -61,7 +61,53 @@ export function Navigation() {
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        {/* Mobile Layout - Stacked */}
+        <div className="md:hidden">
+          {/* Logo centered on its own line */}
+          <div className="flex justify-center py-4">
+            <Link href="/" className="flex items-center space-x-2">
+              <GraduationCap className="h-8 w-8 text-cardinal" />
+              <span className="text-xl font-bold text-cardinal">IYA Dashboard</span>
+            </Link>
+          </div>
+          
+          {/* Navigation buttons below */}
+          <div className="flex justify-center items-center space-x-4 pb-4">
+            {navigation.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive
+                      ? "text-cardinal bg-red-50"
+                      : "text-gray-600 hover:text-cardinal hover:bg-gray-50"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.name}</span>
+                </Link>
+              )
+            })}
+            
+            {user && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign Out</span>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop Layout - Original */}
+        <div className="hidden md:flex justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <GraduationCap className="h-8 w-8 text-cardinal" />

@@ -282,21 +282,25 @@ export default function PublicProfile() {
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900">{project.title}</h4>
                         <p className="text-gray-600 text-sm mt-1">{project.description}</p>
-                        <div className="flex items-center space-x-4 mt-2">
+                        <div className="mt-2 space-y-2">
+                          {/* Project Status - separate line */}
                           {(() => {
                             const projectStatus = project.links && typeof project.links === 'object' ? String(project.links.status || '') : ''
                             if (!projectStatus) return null
                             return (
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                projectStatus === 'completed' ? 'bg-green-100 text-green-800' :
-                                projectStatus === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-blue-100 text-blue-800'
-                              }`}>
-                                {projectStatus === 'completed' ? 'Completed' :
-                                 projectStatus === 'in-progress' ? 'In Progress' : 'Planned'}
-                              </span>
+                              <div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  projectStatus === 'completed' ? 'bg-green-100 text-green-800' :
+                                  projectStatus === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {projectStatus === 'completed' ? 'Completed' :
+                                   projectStatus === 'in-progress' ? 'In Progress' : 'Planned'}
+                                </span>
+                              </div>
                             )
                           })()}
+                          {/* Technologies - separate line */}
                           {(() => {
                             const techs = project.links && typeof project.links === 'object' && Array.isArray(project.links.technologies) ? project.links.technologies : []
                             if (techs.length === 0) return null
