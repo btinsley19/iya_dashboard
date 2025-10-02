@@ -181,12 +181,12 @@ export default function PublicProfile() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {profile.skills.map((skill) => (
+                {profile.skills.map((skill, index) => (
                   <span
-                    key={skill.id}
+                    key={index}
                     className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm"
                   >
-                    {skill.name}
+                    {skill}
                   </span>
                 ))}
               </div>
@@ -242,7 +242,7 @@ export default function PublicProfile() {
         )}
 
         {/* Interests */}
-        {profile.tags.length > 0 && (
+        {profile.interests.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -252,12 +252,12 @@ export default function PublicProfile() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {profile.tags.map((tag) => (
+                {profile.interests.map((interest, index) => (
                   <span
-                    key={tag.id}
+                    key={index}
                     className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
                   >
-                    {tag.name}
+                    {interest}
                   </span>
                 ))}
               </div>

@@ -203,7 +203,6 @@ export default function Profile() {
         year: profileData.year || undefined,
         cohort: profileData.cohort || undefined,
         modality: profileData.modality as 'in-person' | 'online' | 'hybrid',
-        degree: profileData.degree || undefined,
         bio: profileData.bio || undefined,
         skills: profileData.skills,
         organizations: profileData.organizations,
@@ -245,7 +244,6 @@ export default function Profile() {
           year: "2026",
           cohort: "Cohort 10",
           modality: "in-person",
-          degree: "Computer Science",
           bio: "Tell other IYA students who you are...",
           skills: ["React", "TypeScript", "Node.js", "Python", "UI/UX", "Figma", "Marketing"],
           organizations: [
@@ -375,12 +373,11 @@ export default function Profile() {
       
       // Update basic profile information (year and cohort are not editable)
       await updateProfile({
-        name: sanitizeText(user.name),
-        location: user.location ? sanitizeText(user.location) : undefined,
-        hometown: user.hometown ? sanitizeText(user.hometown) : undefined,
-        modality: user.modality || undefined,
-        degree: user.degree ? sanitizeText(user.degree) : undefined,
-        bio: user.bio ? sanitizeText(user.bio) : undefined
+        full_name: sanitizeText(user.name),
+        location: user.location ? sanitizeText(user.location) : null,
+        hometown: user.hometown ? sanitizeText(user.hometown) : null,
+        modality: user.modality || null,
+        bio: user.bio ? sanitizeText(user.bio) : null
       })
 
       // Success - close editing mode
@@ -455,12 +452,6 @@ export default function Profile() {
         await updateGithub(newGithub)
       }
 
-      // Update degree if changed
-      if (user.degree !== undefined) {
-        await updateProfile({
-          degree: user.degree ? sanitizeText(user.degree) : undefined
-        })
-      }
 
       // Success - close editing mode
       stopEditingSection('quickLinks')
@@ -833,7 +824,10 @@ export default function Profile() {
       }
       
       // Update organization in database
-      await updateOrganization(updatedOrg.id, updatedOrg)
+      const updatedOrganizations = user.organizations.map(o => 
+        o.id === updatedOrg.id ? updatedOrg : o
+      )
+      await updateOrganization(updatedOrganizations)
       setEditingOrganization(null)
     } catch (err) {
       console.error('Error updating organization:', err)
@@ -869,12 +863,10 @@ export default function Profile() {
       }
       
       // Update tool in database
-      await updateTool(updatedTool.id, {
-        name: updatedTool.name,
-        description: updatedTool.description,
-        categories: updatedTool.categories,
-        link: updatedTool.link
-      })
+      const updatedTools = user.favoriteTools.map(t => 
+        t.id === updatedTool.id ? updatedTool : t
+      )
+      await updateTool(updatedTools)
       setEditingTool(null)
     } catch (err) {
       console.error('Error updating tool:', err)
@@ -1153,6 +1145,7 @@ export default function Profile() {
       }
       
       await updateContentIngestion({
+        ...user.contentIngestion,
         [type]: [...user.contentIngestion[type], sanitizeText(value)]
       })
     } catch (err) {
@@ -1196,6 +1189,7 @@ export default function Profile() {
       }
       
       await updateContentIngestion({
+        ...user.contentIngestion,
         [type]: newItems
       })
     } catch (err) {
@@ -1264,9 +1258,11 @@ export default function Profile() {
       const savedProject = await addProject({
         title: sanitizeText(newProject.title),
         description: newProject.description ? sanitizeText(newProject.description) : undefined,
-        url: newProject.url || undefined,
-        technologies: newProject.technologies,
-        status: newProject.status
+        links: {
+          url: newProject.url || undefined,
+          technologies: newProject.technologies,
+          status: newProject.status
+        }
       })
       
       // Update UI with the actual saved project data
@@ -1384,9 +1380,11 @@ export default function Profile() {
       await updateProject(updatedProject.id, {
         title: sanitizeText(updatedProject.title),
         description: updatedProject.description ? sanitizeText(updatedProject.description) : undefined,
-        url: updatedProject.url || undefined,
-        technologies: updatedProject.technologies,
-        status: updatedProject.status
+        links: {
+          url: updatedProject.url || undefined,
+          technologies: updatedProject.technologies,
+          status: updatedProject.status
+        }
       })
       setEditingProject(null)
     } catch (err) {
@@ -1500,10 +1498,7 @@ export default function Profile() {
       }
       
       // Save to database in background
-      await addClass({
-        classId: newClass.classId,
-        role: newClass.role
-      })
+      await addClass(newClass.classId)
     } catch (err) {
       console.error('Error adding class:', err)
       setError(err instanceof Error ? err.message : 'Failed to add class')

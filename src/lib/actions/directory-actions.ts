@@ -4,22 +4,17 @@ import { createClient } from "@/lib/supabase/server"
 import { Database } from "@/types/database"
 
 type Profile = Database['public']['Tables']['profiles']['Row']
-type Skill = Database['public']['Tables']['skills']['Row']
 type Class = Database['public']['Tables']['classes']['Row']
 type Project = Database['public']['Tables']['projects']['Row']
 
 export interface DirectoryProfile extends Profile {
-  skills: Array<{
-    id: string
-    name: string
-    level: number
-  }>
-  classes: Array<{
-    id: string
-    code: string
-    title: string
-    role: 'ta' | 'mentor'
-  }>
+  skills: string[]
+      classes: Array<{
+        id: string
+        code: string
+        title: string
+        description?: string | null
+      }>
   projects: Array<{
     id: string
     title: string
@@ -28,10 +23,8 @@ export interface DirectoryProfile extends Profile {
     links: Record<string, unknown> | null
     visibility: 'public' | 'private' | 'unlisted'
   }>
-  tags: Array<{
-    id: string
-    name: string
-  }>
+  interests: string[]
+  tags: string[] // Backward compatibility alias for interests
   organizations: Array<{
     id: string
     name: string
@@ -50,505 +43,388 @@ export interface DirectoryProfile extends Profile {
     id: string
     name: string
     description?: string
-    categories?: string[]
-    category?: string
+    categories: string[]
     link?: string
   }>
-  wantToLearn: string[]
   hobbiesAndSports: string[]
+  canTeach: string[]
+  wantToLearn: string[]
+  major?: string | null // Backward compatibility
+  degree?: string | null // Backward compatibility
 }
 
+// Get all profiles for directory (simplified structure)
+export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<DirectoryProfile[]> {
+  const supabase = await createClient()
+
+  // Get profiles with status = 'active' only
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select(`
+      *,
+      profile_classes (
+        classes (
+          id,
+          code,
+          title,
+          description
+        )
+      ),
+      projects (
+        id,
+        title,
+        summary,
+        description,
+        links,
+        visibility
+      )
+    `)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+
+  if (profilesError) {
+    throw new Error(`Failed to fetch profiles: ${profilesError.message}`)
+  }
+
+  // Transform profiles to match DirectoryProfile interface
+  const transformedProfiles: DirectoryProfile[] = profiles.map(profile => {
+    const links = (profile.links as Record<string, unknown>) || {}
+    
+    return {
+      ...profile,
+      skills: links.skills || [],
+      classes: (profile.profile_classes || []).map((pc: any) => ({
+        id: pc.classes.id,
+        code: pc.classes.code,
+        title: pc.classes.title,
+        description: pc.classes.description
+      })),
+      projects: (profile.projects || []).map((project: any) => ({
+        id: project.id,
+        title: project.title,
+        summary: project.summary,
+        description: project.description,
+        links: project.links,
+        visibility: project.visibility
+      })),
+      interests: links.interests || [],
+      tags: links.interests || [], // Backward compatibility
+      organizations: links.organizations || [],
+      contentIngestion: links.contentIngestion || {
+        podcasts: [],
+        youtubeChannels: [],
+        influencers: [],
+        newsSources: []
+      },
+      favoriteTools: links.favoriteTools || [],
+      hobbiesAndSports: links.hobbiesAndSports || [],
+      canTeach: links.canTeach || [],
+      wantToLearn: links.wantToLearn || [],
+      major: null, // Backward compatibility
+      degree: null // Backward compatibility
+    }
+  })
+
+  return transformedProfiles
+}
+
+// Get profile by ID for public profile page
+export async function getProfileById(profileId: string): Promise<DirectoryProfile | null> {
+  const supabase = await createClient()
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select(`
+      *,
+      profile_classes (
+        classes (
+          id,
+          code,
+          title,
+          description
+        )
+      ),
+      projects (
+        id,
+        title,
+        summary,
+        description,
+        links,
+        visibility
+      )
+    `)
+    .eq('id', profileId)
+    .eq('status', 'active')
+    .single()
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null // Profile not found
+    }
+    throw new Error(`Failed to fetch profile: ${error.message}`)
+  }
+
+  const links = (profile.links as any) || {}
+  
+  return {
+    ...profile,
+    skills: links.skills || [],
+    classes: (profile.profile_classes || []).map((pc: any) => ({
+      id: pc.classes.id,
+      code: pc.classes.code,
+      title: pc.classes.title,
+      instructors: pc.classes.instructors
+    })),
+    projects: (profile.projects || []).map((project: any) => ({
+      id: project.id,
+      title: project.title,
+      summary: project.summary,
+      description: project.description,
+      links: project.links,
+      visibility: project.visibility
+    })),
+    interests: links.interests || [],
+    tags: links.interests || [], // Backward compatibility
+    organizations: links.organizations || [],
+    contentIngestion: links.contentIngestion || {
+      podcasts: [],
+      youtubeChannels: [],
+      influencers: [],
+      newsSources: []
+    },
+    favoriteTools: links.favoriteTools || [],
+    hobbiesAndSports: links.hobbiesAndSports || [],
+    canTeach: links.canTeach || [],
+    wantToLearn: links.wantToLearn || [],
+    major: null, // Backward compatibility
+    degree: null // Backward compatibility
+  }
+}
+
+// Get user recommendations (simplified)
+export async function getUserRecommendations(userId: string): Promise<DirectoryProfile[]> {
+  const supabase = await createClient()
+
+  // Get current user's profile to find matches
+  const { data: currentProfile, error: currentError } = await supabase
+    .from('profiles')
+    .select('links, cohort, graduation_year')
+    .eq('id', userId)
+    .single()
+
+  if (currentError) {
+    throw new Error(`Failed to fetch current user profile: ${currentError.message}`)
+  }
+
+  const currentLinks = (currentProfile.links as any) || {}
+  const currentSkills = currentLinks.skills || []
+  const currentInterests = currentLinks.interests || []
+  const currentCohort = currentProfile.cohort
+  const currentYear = currentProfile.graduation_year
+
+  // Get all other active profiles
+  const { data: profiles, error: profilesError } = await supabase
+    .from('profiles')
+    .select(`
+      *,
+      profile_classes (
+        classes (
+          id,
+          code,
+          title,
+          description
+        )
+      ),
+      projects (
+        id,
+        title,
+        summary,
+        description,
+        links,
+        visibility
+      )
+    `)
+    .eq('status', 'active')
+    .neq('id', userId)
+    .order('created_at', { ascending: false })
+
+  if (profilesError) {
+    throw new Error(`Failed to fetch profiles: ${profilesError.message}`)
+  }
+
+  // Transform and score profiles
+  const scoredProfiles = profiles.map(profile => {
+    const links = (profile.links as any) || {}
+    const profileSkills = links.skills || []
+    const profileInterests = links.interests || []
+    
+    // Calculate match score
+    let score = 0
+    
+    // Skills match (2 points per match)
+    const skillMatches = currentSkills.filter((skill: string) => 
+      profileSkills.includes(skill)
+    ).length
+    score += skillMatches * 2
+    
+    // Interests match (1 point per match)
+    const interestMatches = currentInterests.filter((interest: string) => 
+      profileInterests.includes(interest)
+    ).length
+    score += interestMatches
+    
+    // Cohort match (3 points)
+    if (currentCohort && profile.cohort === currentCohort) {
+      score += 3
+    }
+    
+    // Year match (1 point)
+    if (currentYear && profile.graduation_year === currentYear) {
+      score += 1
+    }
+    
+    return {
+      ...profile,
+      skills: profileSkills,
+      classes: (profile.profile_classes || []).map((pc: any) => ({
+        id: pc.classes.id,
+        code: pc.classes.code,
+        title: pc.classes.title,
+        description: pc.classes.description
+      })),
+      projects: (profile.projects || []).map((project: any) => ({
+        id: project.id,
+        title: project.title,
+        summary: project.summary,
+        description: project.description,
+        links: project.links,
+        visibility: project.visibility
+      })),
+      interests: profileInterests,
+      organizations: links.organizations || [],
+      contentIngestion: links.contentIngestion || {
+        podcasts: [],
+        youtubeChannels: [],
+        influencers: [],
+        newsSources: []
+      },
+      favoriteTools: links.favoriteTools || [],
+      hobbiesAndSports: links.hobbiesAndSports || [],
+      canTeach: links.canTeach || [],
+      wantToLearn: links.wantToLearn || [],
+      major: null, // Backward compatibility
+      degree: null, // Backward compatibility
+      matchScore: score
+    }
+  })
+
+  // Sort by match score and return top 20
+  return scoredProfiles
+    .sort((a, b) => (b as any).matchScore - (a as any).matchScore)
+    .slice(0, 20)
+    .map(({ matchScore, ...profile }) => profile) // Remove matchScore from final result
+}
+
+// Search profiles (simplified)
+export async function searchProfiles(query: string): Promise<DirectoryProfile[]> {
+  const supabase = await createClient()
+
+  // Simple text search on name, bio, and skills
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select(`
+      *,
+      profile_classes (
+        classes (
+          id,
+          code,
+          title,
+          description
+        )
+      ),
+      projects (
+        id,
+        title,
+        summary,
+        description,
+        links,
+        visibility
+      )
+    `)
+    .eq('status', 'active')
+    .or(`full_name.ilike.%${query}%,bio.ilike.%${query}%`)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Failed to search profiles: ${error.message}`)
+  }
+
+  // Transform profiles
+  const transformedProfiles: DirectoryProfile[] = profiles.map(profile => {
+    const links = (profile.links as any) || {}
+    
+    return {
+      ...profile,
+      skills: links.skills || [],
+      classes: (profile.profile_classes || []).map((pc: any) => ({
+        id: pc.classes.id,
+        code: pc.classes.code,
+        title: pc.classes.title,
+        description: pc.classes.description
+      })),
+      projects: (profile.projects || []).map((project: any) => ({
+        id: project.id,
+        title: project.title,
+        summary: project.summary,
+        description: project.description,
+        links: project.links,
+        visibility: project.visibility
+      })),
+      interests: links.interests || [],
+      tags: links.interests || [], // Backward compatibility
+      organizations: links.organizations || [],
+      contentIngestion: links.contentIngestion || {
+        podcasts: [],
+        youtubeChannels: [],
+        influencers: [],
+        newsSources: []
+      },
+      favoriteTools: links.favoriteTools || [],
+      hobbiesAndSports: links.hobbiesAndSports || [],
+      canTeach: links.canTeach || [],
+      wantToLearn: links.wantToLearn || [],
+      major: null, // Backward compatibility
+      degree: null // Backward compatibility
+    }
+  })
+
+  return transformedProfiles
+}
+
+// Get all classes for class selection
+export async function getAllClasses(): Promise<Class[]> {
+  const supabase = await createClient()
+
+  const { data: classes, error } = await supabase
+    .from('classes')
+    .select('*')
+    .order('code', { ascending: true })
+
+  if (error) {
+    throw new Error(`Failed to fetch classes: ${error.message}`)
+  }
+
+  return classes
+}
+
+// Directory filters interface for backward compatibility
 export interface DirectoryFilters {
   search?: string
   skills?: string[]
-  graduationYear?: number
-  major?: string
-  cohort?: string
-  modality?: 'in-person' | 'online' | 'hybrid'
-  location?: string
+  interests?: string[]
+  cohort?: string[]
+  year?: string[]
+  modality?: string[]
   hometown?: string
-}
-
-export interface SearchFilters extends DirectoryFilters {
-  limit?: number
-  offset?: number
-}
-
-export interface Recommendation {
-  profile: DirectoryProfile
-  reason: string
-  matchScore: number
-  connectionPoints: string[]
-}
-
-/**
- * Get all profiles for the directory with enhanced data
- */
-export async function getDirectoryProfiles(filters: DirectoryFilters = {}): Promise<DirectoryProfile[]> {
-  try {
-    const supabase = await createClient()
-    
-    // Build the base query with all necessary joins
-    // CRITICAL: Only show active users in directory
-    let query = supabase
-      .from('profiles')
-      .select(`
-        *,
-        profile_skills(
-          level,
-          skills(id, name)
-        ),
-        profile_classes(
-          role,
-          classes(id, code, title)
-        ),
-        profile_tags(
-          tags(id, name)
-        )
-      `)
-      .eq('status', 'active')  // Only show active users
-      .order('created_at', { ascending: false })
-
-    // Apply filters
-    if (filters.graduationYear) {
-      query = query.eq('graduation_year', filters.graduationYear)
-    }
-    
-    if (filters.major) {
-      query = query.eq('major', filters.major)
-    }
-    
-    if (filters.cohort) {
-      query = query.eq('cohort', filters.cohort)
-    }
-    
-    
-    if (filters.modality) {
-      query = query.eq('modality', filters.modality)
-    }
-    
-    if (filters.location) {
-      query = query.ilike('location', `%${filters.location}%`)
-    }
-    
-    if (filters.hometown) {
-      query = query.ilike('hometown', `%${filters.hometown}%`)
-    }
-
-    const { data: profiles, error } = await query
-
-    if (error) {
-      console.error('Error fetching directory profiles:', error)
-      return []
-    }
-
-    if (!profiles) return []
-
-    // Transform the data to match our interface
-    const transformedProfiles: DirectoryProfile[] = profiles.map(profile => ({
-      ...profile,
-      skills: profile.profile_skills?.map((ps: { skills: { id: string; name: string }; level: number }) => ({
-        id: ps.skills.id,
-        name: ps.skills.name,
-        level: ps.level
-      })) || [],
-      classes: profile.profile_classes?.map((pc: { classes: { id: string; code: string; title: string }; role: 'ta' | 'mentor' }) => ({
-        id: pc.classes.id,
-        code: pc.classes.code,
-        title: pc.classes.title,
-        role: pc.role
-      })) || [],
-      tags: profile.profile_tags?.map((pt: { tags: { id: string; name: string } }) => ({
-        id: pt.tags.id,
-        name: pt.tags.name
-      })) || [],
-      projects: [], // Will be populated separately if needed
-      organizations: profile.links?.organizations || [],
-      contentIngestion: profile.links?.contentIngestion || {
-        podcasts: [],
-        youtubeChannels: [],
-        influencers: [],
-        newsSources: []
-      },
-      favoriteTools: profile.links?.favoriteTools || [],
-      wantToLearn: profile.links?.wantToLearn || [],
-      hobbiesAndSports: profile.links?.hobbiesAndSports || []
-    }))
-
-    // Apply search filter if provided
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase()
-      return transformedProfiles.filter(profile => {
-        const searchableFields = [
-          profile.full_name,
-          profile.bio,
-          profile.major,
-          profile.location,
-          profile.hometown,
-          ...profile.skills.map(s => s.name),
-          ...profile.tags.map(t => t.name),
-          ...profile.classes.map(c => `${c.code} ${c.title}`)
-        ]
-        
-        return searchableFields.some(field => 
-          field?.toLowerCase().includes(searchTerm)
-        )
-      })
-    }
-
-    // Apply skills filter if provided
-    if (filters.skills && filters.skills.length > 0) {
-      return transformedProfiles.filter(profile => 
-        filters.skills!.every(skill => 
-          profile.skills.some(s => s.name === skill)
-        )
-      )
-    }
-
-    return transformedProfiles
-  } catch (error) {
-    console.error('Error in getDirectoryProfiles:', error)
-    return []
-  }
-}
-
-/**
- * Get AI-recommended profiles for a specific user
- */
-export async function getUserRecommendations(userId: string): Promise<Recommendation[]> {
-  try {
-    // Validate userId is a valid UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    if (!userId || !uuidRegex.test(userId)) {
-      console.log('Invalid userId for recommendations:', userId)
-      return []
-    }
-
-    const supabase = await createClient()
-    
-    // Get the current user's profile with all related data
-    const { data: currentUser, error: userError } = await supabase
-      .from('profiles')
-      .select(`
-        *,
-        profile_skills(
-          level,
-          skills(id, name)
-        ),
-        profile_classes(
-          role,
-          classes(id, code, title)
-        ),
-        profile_tags(
-          tags(id, name)
-        )
-      `)
-      .eq('id', userId)
-      .single()
-
-    if (userError || !currentUser) {
-      console.error('Error fetching current user:', userError)
-      return []
-    }
-
-    // Get all other active profiles (exclude pending/suspended users)
-    const { data: allProfiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select(`
-        *,
-        profile_skills(
-          level,
-          skills(id, name)
-        ),
-        profile_classes(
-          role,
-          classes(id, code, title)
-        ),
-        profile_tags(
-          tags(id, name)
-        )
-      `)
-      .eq('status', 'active')  // Only show active users
-      .neq('id', userId)
-
-    if (profilesError || !allProfiles) {
-      console.error('Error fetching profiles for recommendations:', profilesError)
-      return []
-    }
-
-    // Transform profiles
-    const transformedProfiles: DirectoryProfile[] = allProfiles.map(profile => ({
-      ...profile,
-      skills: profile.profile_skills?.map((ps: { skills: { id: string; name: string }; level: number }) => ({
-        id: ps.skills.id,
-        name: ps.skills.name,
-        level: ps.level
-      })) || [],
-      classes: profile.profile_classes?.map((pc: { classes: { id: string; code: string; title: string }; role: 'ta' | 'mentor' }) => ({
-        id: pc.classes.id,
-        code: pc.classes.code,
-        title: pc.classes.title,
-        role: pc.role
-      })) || [],
-      tags: profile.profile_tags?.map((pt: { tags: { id: string; name: string } }) => ({
-        id: pt.tags.id,
-        name: pt.tags.name
-      })) || [],
-      projects: [],
-      organizations: profile.links?.organizations || [],
-      contentIngestion: profile.links?.contentIngestion || {
-        podcasts: [],
-        youtubeChannels: [],
-        influencers: [],
-        newsSources: []
-      },
-      favoriteTools: profile.links?.favoriteTools || [],
-      wantToLearn: profile.links?.wantToLearn || [],
-      hobbiesAndSports: profile.links?.hobbiesAndSports || []
-    }))
-
-    // Calculate recommendations
-    const recommendations: Recommendation[] = transformedProfiles.map(profile => {
-      const connectionPoints: string[] = []
-      let matchScore = 0
-
-      // Check for shared skills
-      const currentUserSkills = currentUser.profile_skills?.map((ps: { skills: { name: string } }) => ps.skills.name) || []
-      const profileSkills = profile.skills.map(s => s.name)
-      const sharedSkills = currentUserSkills.filter((skill: string) => profileSkills.includes(skill))
-      
-      if (sharedSkills.length > 0) {
-        connectionPoints.push(`Shared skills: ${sharedSkills.join(', ')}`)
-        matchScore += sharedSkills.length * 10
-      }
-
-      // Check for complementary skills (skills the current user doesn't have)
-      const complementarySkills = profileSkills.filter(skill => !currentUserSkills.includes(skill))
-      if (complementarySkills.length > 0) {
-        connectionPoints.push(`Complementary skills: ${complementarySkills.slice(0, 3).join(', ')}`)
-        matchScore += complementarySkills.length * 5
-      }
-
-      // Check for same cohort
-      if (currentUser.cohort && profile.cohort && currentUser.cohort === profile.cohort) {
-        connectionPoints.push(`Same cohort: ${profile.cohort}`)
-        matchScore += 20
-      }
-
-      // Check for same graduation year
-      if (currentUser.graduation_year && profile.graduation_year && 
-          currentUser.graduation_year === profile.graduation_year) {
-        connectionPoints.push(`Same graduation year: ${profile.graduation_year}`)
-        matchScore += 15
-      }
-
-      // Check for shared classes
-      const currentUserClasses = currentUser.profile_classes?.map((pc: { classes: { code: string } }) => pc.classes.code) || []
-      const profileClasses = profile.classes.map(c => c.code)
-      const sharedClasses = currentUserClasses.filter((classCode: string) => profileClasses.includes(classCode))
-      
-      if (sharedClasses.length > 0) {
-        connectionPoints.push(`Shared classes: ${sharedClasses.join(', ')}`)
-        matchScore += sharedClasses.length * 8
-      }
-
-      // Check for shared interests/tags
-      const currentUserTags = currentUser.profile_tags?.map((pt: { tags: { name: string } }) => pt.tags.name) || []
-      const profileTags = profile.tags.map(t => t.name)
-      const sharedTags = currentUserTags.filter((tag: string) => profileTags.includes(tag))
-      
-      if (sharedTags.length > 0) {
-        connectionPoints.push(`Shared interests: ${sharedTags.join(', ')}`)
-        matchScore += sharedTags.length * 6
-      }
-
-      // Determine primary reason
-      let reason = "Potential connection"
-      if (sharedSkills.length > 0) {
-        reason = `Shared skills: ${sharedSkills[0]}`
-      } else if (currentUser.cohort && profile.cohort && currentUser.cohort === profile.cohort) {
-        reason = `Same cohort: ${profile.cohort}`
-      } else if (complementarySkills.length > 0) {
-        reason = `Complementary skills: ${complementarySkills[0]}`
-      } else if (sharedClasses.length > 0) {
-        reason = `Shared class: ${sharedClasses[0]}`
-      }
-
-      return {
-        profile,
-        reason,
-        matchScore,
-        connectionPoints
-      }
-    })
-
-    // Sort by match score and return top recommendations
-    return recommendations
-      .filter(rec => rec.matchScore > 0)
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 20) // Return top 20 recommendations
-
-  } catch (error) {
-    console.error('Error in getUserRecommendations:', error)
-    return []
-  }
-}
-
-/**
- * Search profiles with advanced criteria
- */
-export async function searchProfiles(query: string, filters: SearchFilters = {}): Promise<DirectoryProfile[]> {
-  try {
-    const supabase = await createClient()
-    
-    // Use the directory profiles function with search filter
-    const profiles = await getDirectoryProfiles({
-      ...filters,
-      search: query
-    })
-
-    // Apply additional search criteria
-    let results = profiles
-
-    // Apply limit and offset for pagination
-    if (filters.limit) {
-      const offset = filters.offset || 0
-      results = results.slice(offset, offset + filters.limit)
-    }
-
-    return results
-  } catch (error) {
-    console.error('Error in searchProfiles:', error)
-    return []
-  }
-}
-
-/**
- * Get a single profile by ID with all related data
- */
-export async function getProfileById(id: string): Promise<DirectoryProfile | null> {
-  try {
-    const supabase = await createClient()
-    
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select(`
-        *,
-        profile_skills(
-          level,
-          skills(id, name)
-        ),
-        profile_classes(
-          role,
-          classes(id, code, title)
-        ),
-        profile_tags(
-          tags(id, name)
-        ),
-        projects!owner_id(
-          id,
-          title,
-          summary,
-          description,
-          links,
-          visibility
-        )
-      `)
-      .eq('id', id)
-      .single()
-
-    if (error || !profile) {
-      console.error('Error fetching profile by ID:', error)
-      return null
-    }
-
-    // Transform the data
-    return {
-      ...profile,
-      skills: profile.profile_skills?.map((ps: { skills: { id: string; name: string }; level: number }) => ({
-        id: ps.skills.id,
-        name: ps.skills.name,
-        level: ps.level
-      })) || [],
-      classes: profile.profile_classes?.map((pc: { classes: { id: string; code: string; title: string }; role: 'ta' | 'mentor' }) => ({
-        id: pc.classes.id,
-        code: pc.classes.code,
-        title: pc.classes.title,
-        role: pc.role
-      })) || [],
-      tags: profile.profile_tags?.map((pt: { tags: { id: string; name: string } }) => ({
-        id: pt.tags.id,
-        name: pt.tags.name
-      })) || [],
-      projects: profile.projects?.map((p: { id: string; title: string; summary: string | null; description: string | null; links: Record<string, unknown> | null; visibility: 'public' | 'private' | 'unlisted' }) => ({
-        id: p.id,
-        title: p.title,
-        summary: p.summary,
-        description: p.description,
-        links: p.links,
-        visibility: p.visibility
-      })) || [],
-      organizations: profile.links?.organizations || [],
-      contentIngestion: profile.links?.contentIngestion || {
-        podcasts: [],
-        youtubeChannels: [],
-        influencers: [],
-        newsSources: []
-      },
-      favoriteTools: profile.links?.favoriteTools || [],
-      wantToLearn: profile.links?.wantToLearn || [],
-      hobbiesAndSports: profile.links?.hobbiesAndSports || []
-    }
-  } catch (error) {
-    console.error('Error in getProfileById:', error)
-    return null
-  }
-}
-
-/**
- * Get all available skills for filtering
- */
-export async function getAllSkills(): Promise<Skill[]> {
-  try {
-    const supabase = await createClient()
-    
-    const { data: skills, error } = await supabase
-      .from('skills')
-      .select('*')
-      .order('name')
-
-    if (error) {
-      console.error('Error fetching skills:', error)
-      return []
-    }
-
-    return skills || []
-  } catch (error) {
-    console.error('Error in getAllSkills:', error)
-    return []
-  }
-}
-
-/**
- * Get all available classes for filtering
- */
-export async function getAllClasses(): Promise<Class[]> {
-  try {
-    const supabase = await createClient()
-    
-    const { data: classes, error } = await supabase
-      .from('classes')
-      .select('*')
-      .order('code')
-
-    if (error) {
-      console.error('Error fetching classes:', error)
-      return []
-    }
-
-    return classes || []
-  } catch (error) {
-    console.error('Error in getAllClasses:', error)
-    return []
-  }
+  location?: string
 }

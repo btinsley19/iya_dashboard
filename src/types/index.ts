@@ -7,7 +7,6 @@ export interface User {
   year?: string
   cohort?: string
   modality?: 'in-person' | 'online' | 'hybrid'
-  degree?: string
   bio?: string
   skills: string[]
   organizations: Organization[]

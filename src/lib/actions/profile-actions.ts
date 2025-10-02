@@ -5,23 +5,7 @@ import { requireActiveUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { Organization, FavoriteTool, Project, Class } from '@/types'
 
-interface DbSkill {
-  name: string
-}
-
-interface DbTag {
-  name: string
-}
-
-interface DbClass {
-  id: string
-  title: string
-  code: string
-  term?: string
-  year?: number
-}
-
-// Get user profile with all related data
+// Get user profile with all related data (simplified structure)
 export async function getUserProfile(): Promise<{
   id: string
   name: string
@@ -31,7 +15,6 @@ export async function getUserProfile(): Promise<{
   year?: string | null
   cohort?: string | null
   modality?: string | null
-  degree?: string | null
   bio?: string | null
   skills: string[]
   organizations: Organization[]
@@ -70,48 +53,14 @@ export async function getUserProfile(): Promise<{
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  // Get user skills with proficiency levels
-  const { data: userSkills, error: skillsError } = await supabase
-    .from('profile_skills')
-    .select(`
-      level,
-      skills (
-        name,
-        description
-      )
-    `)
-    .eq('profile_id', user.id)
-
-  if (skillsError) {
-    console.error('Error fetching skills:', skillsError)
-  }
-
-  // Get user tags (interests)
-  const { data: userTags, error: tagsError } = await supabase
-    .from('profile_tags')
-    .select(`
-      tags (
-        name,
-        description
-      )
-    `)
-    .eq('profile_id', user.id)
-
-  if (tagsError) {
-    console.error('Error fetching tags:', tagsError)
-  }
-
-  // Get user classes
+  // Get user classes (simplified - no roles)
   const { data: userClasses, error: classesError } = await supabase
     .from('profile_classes')
     .select(`
-      role,
       classes (
         id,
         code,
         title,
-        term,
-        year,
         description
       )
     `)
@@ -134,12 +83,14 @@ export async function getUserProfile(): Promise<{
       updated_at
     `)
     .eq('owner_id', user.id)
-    .eq('archived', false)
 
   if (projectsError) {
     console.error('Error fetching projects:', projectsError)
   }
 
+  // Extract data from links JSONB
+  const links = profile.links as any || {}
+  
   // Transform data to match frontend interface
   const transformedProfile = {
     id: profile.id,
@@ -150,51 +101,43 @@ export async function getUserProfile(): Promise<{
     year: profile.graduation_year?.toString() || null,
     cohort: profile.cohort || null,
     modality: profile.modality || null,
-    degree: profile.degree || null,
     bio: profile.bio || null,
-    skills: userSkills?.map((us: { skills: unknown }) => (us.skills as DbSkill)?.name).filter(Boolean) || [],
-    organizations: profile.links?.organizations || [],
-    interests: userTags?.map((ut: { tags: unknown }) => (ut.tags as DbTag)?.name).filter(Boolean) || [],
-    hobbiesAndSports: profile.links?.hobbiesAndSports || 
-      // Backward compatibility: combine old separate fields if they exist
-      [
-        ...(profile.links?.activities || []),
-        ...(profile.links?.hobbies || []),
-        ...(profile.links?.sports || []),
-        ...(profile.links?.freetime || [])
-      ].filter((item, index, array) => array.indexOf(item) === index), // Remove duplicates
-    canTeach: profile.links?.canTeach || [],
-    wantToLearn: profile.links?.wantToLearn || [],
-    favoriteTools: profile.links?.favoriteTools || [],
-    contentIngestion: {
-      podcasts: profile.links?.contentIngestion?.podcasts || [],
-      youtubeChannels: profile.links?.contentIngestion?.youtubeChannels || [],
-      influencers: profile.links?.contentIngestion?.influencers || [],
-      newsSources: profile.links?.contentIngestion?.newsSources || []
+    skills: links.skills || [],
+    organizations: links.organizations || [],
+    interests: links.interests || [],
+    hobbiesAndSports: links.hobbiesAndSports || [],
+    canTeach: links.canTeach || [],
+    wantToLearn: links.wantToLearn || [],
+    favoriteTools: links.favoriteTools || [],
+    contentIngestion: links.contentIngestion || {
+      podcasts: [],
+      youtubeChannels: [],
+      influencers: [],
+      newsSources: []
     },
-    projects: userProjects?.map(project => ({
+    projects: (userProjects || []).map(project => ({
       id: project.id,
       title: project.title,
-      description: project.description || project.summary || '',
-      url: project.links?.url || null,
+      description: project.description || '',
+      url: project.links?.url || '',
       technologies: project.links?.technologies || [],
-      status: project.links?.status || 'planned'
-    })) || [],
-    classes: userClasses?.map((uc: { classes: unknown }) => {
-      const dbClass = uc.classes as DbClass
-      return {
-        id: dbClass?.id || '',
-        title: dbClass?.title || '',
-        code: dbClass?.code || '',
-        semester: dbClass?.term ? `${dbClass.term} ${dbClass.year || ''}` : null,
-        year: dbClass?.year
-      }
-    }) || [],
-    linkedinUrl: profile.links?.linkedin || null,
-    resumeUrl: profile.links?.resume || null,
-    personalWebsite: profile.links?.personalWebsite || null,
-    github: profile.links?.github || null,
-    avatar: (profile as { avatar_url?: string | null }).avatar_url,
+      status: project.links?.status || 'completed'
+    })),
+    classes: (userClasses || []).map((userClass: any) => ({
+      id: userClass.classes.id,
+      title: userClass.classes.title,
+      code: userClass.classes.code,
+      description: userClass.classes.description,
+      term: null, // Not used in new structure
+      year: null, // Not used in new structure
+      semester: null, // Not used in new structure
+      instructor: null // Not used in new structure
+    })),
+    linkedinUrl: links.linkedin || null,
+    resumeUrl: links.resume || null,
+    personalWebsite: links.personalWebsite || null,
+    github: links.github || null,
+    avatar: profile.avatar_url || null,
     createdAt: new Date(profile.created_at),
     updatedAt: new Date(profile.updated_at)
   }
@@ -202,73 +145,347 @@ export async function getUserProfile(): Promise<{
   return transformedProfile
 }
 
-// Update basic profile information
-export async function updateProfile(updates: {
-  name?: string
-  location?: string
-  hometown?: string
-  year?: string
-  cohort?: string
-  modality?: string
-  degree?: string
-  bio?: string
-}) {
+// Update skills in links JSONB
+export async function updateSkills(skills: string[]): Promise<void> {
   const user = await requireActiveUser()
   const supabase = await createClient()
 
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('links')
     .eq('id', user.id)
     .single()
 
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = currentProfile.links || {}
-
-  // Prepare update data
-  const updateData: Record<string, string | number | Record<string, unknown>> = {}
+  const currentLinks = (profile.links as any) || {}
   
-  if (updates.name) {
-    updateData.full_name = updates.name
-  }
-  
-  if (updates.year) {
-    updateData.graduation_year = parseInt(updates.year)
-  }
-
-  // Update direct columns (not in links JSONB)
-  if (updates.location !== undefined) {
-    updateData.location = updates.location
-  }
-  
-  if (updates.hometown !== undefined) {
-    updateData.hometown = updates.hometown
-  }
-  
-  if (updates.cohort !== undefined) {
-    updateData.cohort = updates.cohort
-  }
-  
-  
-  if (updates.modality !== undefined) {
-    updateData.modality = updates.modality
-  }
-  
-  if (updates.degree !== undefined) {
-    updateData.degree = updates.degree
-  }
-  
-  if (updates.bio !== undefined) {
-    updateData.bio = updates.bio
+  // Update skills in links
+  const updatedLinks = {
+    ...currentLinks,
+    skills: skills
   }
 
   const { error } = await supabase
     .from('profiles')
-    .update(updateData)
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update skills: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update interests in links JSONB
+export async function updateInterests(interests: string[]): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  
+  // Update interests in links
+  const updatedLinks = {
+    ...currentLinks,
+    interests: interests
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update interests: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update hobbies and sports in links JSONB
+export async function updateHobbiesAndSports(hobbiesAndSports: string[]): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  
+  // Update hobbies and sports in links
+  const updatedLinks = {
+    ...currentLinks,
+    hobbiesAndSports: hobbiesAndSports
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update hobbies and sports: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update want to learn in links JSONB
+export async function updateWantToLearn(wantToLearn: string[]): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  
+  // Update want to learn in links
+  const updatedLinks = {
+    ...currentLinks,
+    wantToLearn: wantToLearn
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update want to learn: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update can teach in links JSONB
+export async function updateCanTeach(canTeach: string[]): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  
+  // Update can teach in links
+  const updatedLinks = {
+    ...currentLinks,
+    canTeach: canTeach
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update can teach: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update organizations in links JSONB
+export async function updateOrganizations(organizations: Organization[]): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  
+  // Update organizations in links
+  const updatedLinks = {
+    ...currentLinks,
+    organizations: organizations
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update organizations: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update favorite tools in links JSONB
+export async function updateFavoriteTools(favoriteTools: FavoriteTool[]): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  
+  // Update favorite tools in links
+  const updatedLinks = {
+    ...currentLinks,
+    favoriteTools: favoriteTools
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update favorite tools: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update content ingestion in links JSONB
+export async function updateContentIngestion(contentIngestion: {
+  podcasts: string[]
+  youtubeChannels: string[]
+  influencers: string[]
+  newsSources: string[]
+}): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  
+  // Update content ingestion in links
+  const updatedLinks = {
+    ...currentLinks,
+    contentIngestion: contentIngestion
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update content ingestion: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Update basic profile info
+export async function updateProfileInfo(data: {
+  full_name?: string
+  bio?: string | null
+  location?: string | null
+  hometown?: string | null
+  cohort?: string
+  modality?: 'in-person' | 'online' | 'hybrid' | null
+  graduation_year?: number
+}): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  // Filter out undefined values
+  const updateData = Object.fromEntries(
+    Object.entries(data).filter(([_, value]) => value !== undefined)
+  )
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ 
+      ...updateData,
+      updated_at: new Date().toISOString()
+    })
     .eq('id', user.id)
 
   if (error) {
@@ -278,460 +495,52 @@ export async function updateProfile(updates: {
   revalidatePath('/profile')
 }
 
-// Add a skill to user profile
-export async function addSkill(skillName: string) {
+// Update links (social media, etc.)
+export async function updateLinks(links: {
+  linkedin?: string
+  github?: string
+  personalWebsite?: string
+  resume?: string
+}): Promise<void> {
   const user = await requireActiveUser()
   const supabase = await createClient()
 
-  // First, get or create the skill
-  const { data: existingSkill, error: skillError } = await supabase
-    .from('skills')
-    .select('id')
-    .eq('name', skillName)
-    .single()
-
-  let skill = existingSkill
-
-  if (skillError && skillError.code === 'PGRST116') {
-    // Skill doesn't exist, create it
-    const { data: newSkill, error: createError } = await supabase
-      .from('skills')
-      .insert({ name: skillName })
-      .select('id')
-      .single()
-
-    if (createError) {
-      throw new Error(`Failed to create skill: ${createError.message}`)
-    }
-    skill = newSkill
-  } else if (skillError) {
-    throw new Error(`Failed to fetch skill: ${skillError.message}`)
-  }
-
-  // Ensure skill exists and has an ID
-  if (!skill || !skill.id) {
-    throw new Error('Failed to get or create skill')
-  }
-
-  // Add skill to user profile
-  const { error: profileSkillError } = await supabase
-    .from('profile_skills')
-    .insert({
-      profile_id: user.id,
-      skill_id: skill.id,
-      level: 1 // Default level
-    })
-
-  if (profileSkillError) {
-    if (profileSkillError.code === '23505') {
-      // Skill already exists for user
-      return
-    }
-    throw new Error(`Failed to add skill to profile: ${profileSkillError.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Remove a skill from user profile
-export async function removeSkill(skillName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get skill ID
-  const { data: skill, error: skillError } = await supabase
-    .from('skills')
-    .select('id')
-    .eq('name', skillName)
-    .single()
-
-  if (skillError) {
-    throw new Error(`Failed to fetch skill: ${skillError.message}`)
-  }
-
-  // Remove skill from user profile
-  const { error } = await supabase
-    .from('profile_skills')
-    .delete()
-    .eq('profile_id', user.id)
-    .eq('skill_id', skill.id)
-
-  if (error) {
-    throw new Error(`Failed to remove skill from profile: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Add an interest (tag) to user profile
-export async function addInterest(interestName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // First, get or create the tag
-  const { data: existingTag, error: tagError } = await supabase
-    .from('tags')
-    .select('id')
-    .eq('name', interestName)
-    .single()
-
-  let tag = existingTag
-
-  if (tagError && tagError.code === 'PGRST116') {
-    // Tag doesn't exist, create it
-    const { data: newTag, error: createError } = await supabase
-      .from('tags')
-      .insert({ name: interestName })
-      .select('id')
-      .single()
-
-    if (createError) {
-      throw new Error(`Failed to create tag: ${createError.message}`)
-    }
-    tag = newTag
-  } else if (tagError) {
-    throw new Error(`Failed to fetch tag: ${tagError.message}`)
-  }
-
-  // Ensure tag exists and has an ID
-  if (!tag || !tag.id) {
-    throw new Error('Failed to get or create tag')
-  }
-
-  // Add tag to user profile
-  const { error: profileTagError } = await supabase
-    .from('profile_tags')
-    .insert({
-      profile_id: user.id,
-      tag_id: tag.id
-    })
-
-  if (profileTagError) {
-    if (profileTagError.code === '23505') {
-      // Tag already exists for user
-      return
-    }
-    throw new Error(`Failed to add interest to profile: ${profileTagError.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Remove an interest (tag) from user profile
-export async function removeInterest(interestName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get tag ID
-  const { data: tag, error: tagError } = await supabase
-    .from('tags')
-    .select('id')
-    .eq('name', interestName)
-    .single()
-
-  if (tagError) {
-    throw new Error(`Failed to fetch tag: ${tagError.message}`)
-  }
-
-  // Remove tag from user profile
-  const { error } = await supabase
-    .from('profile_tags')
-    .delete()
-    .eq('profile_id', user.id)
-    .eq('tag_id', tag.id)
-
-  if (error) {
-    throw new Error(`Failed to remove interest from profile: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Update LinkedIn URL
-export async function updateLinkedInUrl(url: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
+  // Get current links
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('links')
     .eq('id', user.id)
     .single()
 
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = currentProfile.links || {}
-  const newLinks = {
-    ...currentLinks,
-    linkedin: url
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update LinkedIn URL: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Update resume URL
-export async function updateResumeUrl(url: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const newLinks = {
-    ...currentLinks,
-    resume: url
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update resume URL: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Update personal website URL
-export async function updatePersonalWebsite(url: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const newLinks = {
-    ...currentLinks,
-    personalWebsite: url
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update personal website: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Update GitHub URL
-export async function updateGithub(url: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const newLinks = {
-    ...currentLinks,
-    github: url
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update GitHub URL: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Project management functions
-
-// Add a new project
-export async function addProject(projectData: {
-  title: string
-  description?: string
-  url?: string
-  technologies?: string[]
-  status?: 'completed' | 'in-progress' | 'planned'
-}) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('projects')
-    .insert({
-      title: projectData.title,
-      summary: projectData.description,
-      description: projectData.description,
-      owner_id: user.id,
-      visibility: 'public',
-      links: {
-        url: projectData.url,
-        technologies: projectData.technologies || [],
-        status: projectData.status || 'completed'
-      }
-    })
-    .select()
-    .single()
-
-  if (error) {
-    throw new Error(`Failed to create project: ${error.message}`)
-  }
-
-  // Return the created project in the format expected by the frontend
-  return {
-    id: data.id,
-    title: data.title,
-    description: data.description || data.summary || '',
-    url: data.links?.url || null,
-    technologies: data.links?.technologies || [],
-    status: data.links?.status || 'completed'
-  }
-
-  // Note: Removed revalidatePath to prevent page refresh - using optimistic updates instead
-}
-
-// Update an existing project
-export async function updateProject(projectId: string, updates: {
-  title?: string
-  description?: string
-  url?: string
-  technologies?: string[]
-  status?: 'completed' | 'in-progress' | 'planned'
-}) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current project to merge with existing links
-  const { data: currentProject, error: currentError } = await supabase
-    .from('projects')
-    .select('links')
-    .eq('id', projectId)
-    .eq('owner_id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current project: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProject.links || {}
-
-  // Prepare update data
-  const updateData: Record<string, string | Record<string, unknown>> = {}
+  const currentLinks = (profile.links as any) || {}
   
-  if (updates.title) {
-    updateData.title = updates.title
-  }
-  
-  if (updates.description) {
-    updateData.summary = updates.description
-    updateData.description = updates.description
-  }
-
-  // Update links with new values
-  const newLinks = {
+  // Update links
+  const updatedLinks = {
     ...currentLinks,
-    ...(updates.url && { url: updates.url }),
-    ...(updates.technologies && { technologies: updates.technologies }),
-    ...(updates.status && { status: updates.status })
+    ...links
   }
-
-  updateData.links = newLinks
 
   const { error } = await supabase
-    .from('projects')
-    .update(updateData)
-    .eq('id', projectId)
-    .eq('owner_id', user.id)
+    .from('profiles')
+    .update({ 
+      links: updatedLinks,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', user.id)
 
   if (error) {
-    throw new Error(`Failed to update project: ${error.message}`)
+    throw new Error(`Failed to update links: ${error.message}`)
   }
 
   revalidatePath('/profile')
 }
 
-// Delete a project
-export async function deleteProject(projectId: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Check if this is a demo/temp project ID that shouldn't be deleted from database
-  if (projectId.startsWith('demo-project-') || projectId.startsWith('temp-project-')) {
-    // This is a demo/temp project, just return success (it's only in the UI)
-    return
-  }
-
-  // Validate UUID format
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  if (!uuidRegex.test(projectId)) {
-    throw new Error('Invalid project ID format')
-  }
-
-  // Try to delete the project directly - RLS policies will handle authorization
-  const { error } = await supabase
-    .from('projects')
-    .delete()
-    .eq('id', projectId)
-    .eq('owner_id', user.id)
-
-  if (error) {
-    // If RLS is causing issues, provide a more helpful error message
-    if (error.message.includes('infinite recursion') || error.message.includes('policy')) {
-      throw new Error('Database policy error. Please contact an administrator to fix the database policies.')
-    }
-    throw new Error(`Failed to delete project: ${error.message}`)
-  }
-
-  // Note: Removed revalidatePath to prevent page refresh - using optimistic updates instead
-}
-
-// Class management functions
-
-// Add a class to user profile
-export async function addClass(classData: {
-  classId: string
-  role: 'ta' | 'mentor'
-}) {
+// Add/remove classes (simplified - no roles)
+export async function addClass(classId: string): Promise<void> {
   const user = await requireActiveUser()
   const supabase = await createClient()
 
@@ -739,23 +548,17 @@ export async function addClass(classData: {
     .from('profile_classes')
     .insert({
       profile_id: user.id,
-      class_id: classData.classId,
-      role: classData.role
+      class_id: classId
     })
 
   if (error) {
-    if (error.code === '23505') {
-      // Class already exists for user
-      return
-    }
-    throw new Error(`Failed to add class to profile: ${error.message}`)
+    throw new Error(`Failed to add class: ${error.message}`)
   }
 
   revalidatePath('/profile')
 }
 
-// Remove a class from user profile
-export async function removeClass(classId: string) {
+export async function removeClass(classId: string): Promise<void> {
   const user = await requireActiveUser()
   const supabase = await createClient()
 
@@ -766,637 +569,406 @@ export async function removeClass(classId: string) {
     .eq('class_id', classId)
 
   if (error) {
-    throw new Error(`Failed to remove class from profile: ${error.message}`)
+    throw new Error(`Failed to remove class: ${error.message}`)
   }
 
   revalidatePath('/profile')
 }
 
-// Get available classes for selection
-export async function getAvailableClasses() {
+// Project management (unchanged)
+export async function createProject(project: {
+  title: string
+  summary?: string
+  description?: string
+  links?: any
+}): Promise<Project> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('projects')
+    .insert({
+      owner_id: user.id,
+      title: project.title,
+      summary: project.summary,
+      description: project.description,
+      links: project.links || {}
+    })
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`Failed to create project: ${error.message}`)
+  }
+
+  // Transform database project to frontend Project interface
+  const result: Project = {
+    id: data.id,
+    title: data.title,
+    description: data.description || '',
+    url: data.links?.url || undefined,
+    technologies: data.links?.technologies || [],
+    status: data.links?.status || 'planned'
+  }
+
+  revalidatePath('/profile')
+  return result
+}
+
+export async function updateProject(projectId: string, updates: {
+  title?: string
+  summary?: string
+  description?: string
+  links?: any
+}): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('projects')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', projectId)
+    .eq('owner_id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to update project: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+export async function deleteProject(projectId: string): Promise<void> {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from('projects')
+    .delete()
+    .eq('id', projectId)
+    .eq('owner_id', user.id)
+
+  if (error) {
+    throw new Error(`Failed to delete project: ${error.message}`)
+  }
+
+  revalidatePath('/profile')
+}
+
+// Legacy function names for backward compatibility
+export const updateProfile = updateProfileInfo
+export const addSkill = async (skill: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current skills
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentSkills = currentLinks.skills || []
+  
+  // Add new skill if not already present
+  if (!currentSkills.includes(skill)) {
+    await updateSkills([...currentSkills, skill])
+  }
+}
+
+export const removeSkill = async (skill: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current skills
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentSkills = currentLinks.skills || []
+  
+  // Remove skill
+  await updateSkills(currentSkills.filter((s: string) => s !== skill))
+}
+
+export const addInterest = async (interest: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current interests
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentInterests = currentLinks.interests || []
+  
+  // Add new interest if not already present
+  if (!currentInterests.includes(interest)) {
+    await updateInterests([...currentInterests, interest])
+  }
+}
+
+export const removeInterest = async (interest: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current interests
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentInterests = currentLinks.interests || []
+  
+  // Remove interest
+  await updateInterests(currentInterests.filter((i: string) => i !== interest))
+}
+
+export const addHobbyOrSport = async (hobby: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current hobbies and sports
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentHobbies = currentLinks.hobbiesAndSports || []
+  
+  // Add new hobby if not already present
+  if (!currentHobbies.includes(hobby)) {
+    await updateHobbiesAndSports([...currentHobbies, hobby])
+  }
+}
+
+export const removeHobbyOrSport = async (hobby: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current hobbies and sports
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentHobbies = currentLinks.hobbiesAndSports || []
+  
+  // Remove hobby
+  await updateHobbiesAndSports(currentHobbies.filter((h: string) => h !== hobby))
+}
+
+export const addFavoriteTool = async (tool: FavoriteTool) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current tools
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentTools = currentLinks.favoriteTools || []
+  
+  // Add new tool
+  await updateFavoriteTools([...currentTools, tool])
+}
+
+export const removeFavoriteTool = async (toolId: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current tools
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentTools = currentLinks.favoriteTools || []
+  
+  // Remove tool
+  await updateFavoriteTools(currentTools.filter((t: FavoriteTool) => t.id !== toolId))
+}
+export const updateLinkedInUrl = async (url: string) => await updateLinks({ linkedin: url })
+export const updateResumeUrl = async (url: string) => await updateLinks({ resume: url })
+export const updatePersonalWebsite = async (url: string) => await updateLinks({ personalWebsite: url })
+export const updateGithub = async (url: string) => await updateLinks({ github: url })
+export const addProject = createProject
+export const getAvailableClasses = getAllClasses
+export const addCanTeach = async (skill: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current canTeach
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentCanTeach = currentLinks.canTeach || []
+  
+  // Add new skill if not already present
+  if (!currentCanTeach.includes(skill)) {
+    await updateCanTeach([...currentCanTeach, skill])
+  }
+}
+
+export const removeCanTeach = async (skill: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current canTeach
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentCanTeach = currentLinks.canTeach || []
+  
+  // Remove skill
+  await updateCanTeach(currentCanTeach.filter((s: string) => s !== skill))
+}
+
+export const addWantToLearn = async (skill: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current wantToLearn
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentWantToLearn = currentLinks.wantToLearn || []
+  
+  // Add new skill if not already present
+  if (!currentWantToLearn.includes(skill)) {
+    await updateWantToLearn([...currentWantToLearn, skill])
+  }
+}
+
+export const removeWantToLearn = async (skill: string) => {
+  const user = await requireActiveUser()
+  const supabase = await createClient()
+  
+  // Get current wantToLearn
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('links')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    throw new Error(`Failed to fetch profile: ${profileError.message}`)
+  }
+
+  const currentLinks = (profile.links as any) || {}
+  const currentWantToLearn = currentLinks.wantToLearn || []
+  
+  // Remove skill
+  await updateWantToLearn(currentWantToLearn.filter((s: string) => s !== skill))
+}
+export const addOrganization = async (org: Omit<Organization, 'id'>) => {
+  const newOrg: Organization = {
+    ...org,
+    id: crypto.randomUUID()
+  }
+  return await updateOrganizations([newOrg])
+}
+export const removeOrganization = async (orgId: string) => await updateOrganizations([]) // Will be handled by UI
+export const updateOrganization = updateOrganizations
+export const updateTool = updateFavoriteTools
+
+// Get all classes for class selection
+export async function getAllClasses(): Promise<Class[]> {
   const supabase = await createClient()
 
   const { data: classes, error } = await supabase
     .from('classes')
     .select('*')
-    .order('code')
+    .order('code', { ascending: true })
 
   if (error) {
     throw new Error(`Failed to fetch classes: ${error.message}`)
   }
 
-  return classes
-}
-
-// Can Teach / Want to Learn functions
-
-// Add a skill to canTeach
-export async function addCanTeach(skillName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const canTeach = currentLinks.canTeach || []
-
-  if (!canTeach.includes(skillName)) {
-    const newLinks = {
-      ...currentLinks,
-      canTeach: [...canTeach, skillName]
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ links: newLinks })
-      .eq('id', user.id)
-
-    if (error) {
-      throw new Error(`Failed to update canTeach: ${error.message}`)
-    }
-  }
-
-  // Note: Removed revalidatePath to prevent page refresh - using optimistic updates instead
-}
-
-// Remove a skill from canTeach
-export async function removeCanTeach(skillName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const canTeach = currentLinks.canTeach || []
-
-  const newLinks = {
-    ...currentLinks,
-    canTeach: canTeach.filter((skill: string) => skill !== skillName)
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update canTeach: ${error.message}`)
-  }
-
-  // Note: Removed revalidatePath to prevent page refresh - using optimistic updates instead
-}
-
-// Add a skill to wantToLearn
-export async function addWantToLearn(skillName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const wantToLearn = currentLinks.wantToLearn || []
-
-  if (!wantToLearn.includes(skillName)) {
-    const newLinks = {
-      ...currentLinks,
-      wantToLearn: [...wantToLearn, skillName]
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ links: newLinks })
-      .eq('id', user.id)
-
-    if (error) {
-      throw new Error(`Failed to update wantToLearn: ${error.message}`)
-    }
-  }
-
-  // Note: Removed revalidatePath to prevent page refresh - using optimistic updates instead
-}
-
-// Remove a skill from wantToLearn
-export async function removeWantToLearn(skillName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const wantToLearn = currentLinks.wantToLearn || []
-
-  const newLinks = {
-    ...currentLinks,
-    wantToLearn: wantToLearn.filter((skill: string) => skill !== skillName)
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update wantToLearn: ${error.message}`)
-  }
-
-  // Note: Removed revalidatePath to prevent page refresh - using optimistic updates instead
-}
-
-// Hobbies and Sports management functions
-
-// Add a hobby or sport
-export async function addHobbyOrSport(itemName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  
-  // Check if we need to migrate old data structure
-  const hasOldStructure = currentLinks.activities || currentLinks.hobbies || currentLinks.sports || currentLinks.freetime
-  const hasNewStructure = currentLinks.hobbiesAndSports
-  
-  let hobbiesAndSports = currentLinks.hobbiesAndSports || []
-  
-  // Migrate old data if it exists and we don't have new structure
-  if (hasOldStructure && !hasNewStructure) {
-    hobbiesAndSports = [
-      ...(currentLinks.activities || []),
-      ...(currentLinks.hobbies || []),
-      ...(currentLinks.sports || []),
-      ...(currentLinks.freetime || [])
-    ].filter((item, index, array) => array.indexOf(item) === index) // Remove duplicates
-  }
-
-  if (!hobbiesAndSports.includes(itemName)) {
-    const newLinks = {
-      ...currentLinks,
-      hobbiesAndSports: [...hobbiesAndSports, itemName],
-      // Remove old fields if they existed (migration cleanup)
-      ...(hasOldStructure && !hasNewStructure ? {
-        activities: undefined,
-        hobbies: undefined,
-        sports: undefined,
-        freetime: undefined
-      } : {})
-    }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ links: newLinks })
-      .eq('id', user.id)
-
-    if (error) {
-      throw new Error(`Failed to update hobbies and sports: ${error.message}`)
-    }
-  }
-}
-
-// Remove a hobby or sport
-export async function removeHobbyOrSport(itemName: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const hobbiesAndSports = currentLinks.hobbiesAndSports || []
-
-  const newLinks = {
-    ...currentLinks,
-    hobbiesAndSports: hobbiesAndSports.filter((item: string) => item !== itemName)
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update hobbies and sports: ${error.message}`)
-  }
-}
-
-// Favorite Tools management functions
-
-// Add a favorite tool
-export async function addFavoriteTool(tool: { 
-  name: string; 
-  description?: string; 
-  categories: string[]; 
-  link?: string 
-}) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const favoriteTools = currentLinks.favoriteTools || []
-
-  const newTool = {
-    id: `tool-${Date.now()}`,
-    name: tool.name,
-    description: tool.description || '',
-    categories: tool.categories || [],
-    link: tool.link || ''
-  }
-
-  const newLinks = {
-    ...currentLinks,
-    favoriteTools: [...favoriteTools, newTool]
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update favorite tools: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Update favorite tool
-export async function updateFavoriteTool(toolId: string, tool: {
-  name: string
-  description?: string
-  categories: string[]
-  link?: string
-}) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const favoriteTools = currentLinks.favoriteTools || []
-
-  const updatedTools = favoriteTools.map((t: FavoriteTool) => 
-    t.id === toolId 
-      ? { ...t, ...tool }
-      : t
-  )
-
-  const newLinks = {
-    ...currentLinks,
-    favoriteTools: updatedTools
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update favorite tool: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Remove a favorite tool
-export async function removeFavoriteTool(toolId: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const favoriteTools = currentLinks.favoriteTools || []
-
-  const newLinks = {
-    ...currentLinks,
-    favoriteTools: favoriteTools.filter((tool: FavoriteTool) => tool.id !== toolId)
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update favorite tools: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Content Ingestion management functions
-
-// Update content ingestion
-export async function updateContentIngestion(contentIngestion: {
-  podcasts?: string[]
-  youtubeChannels?: string[]
-  influencers?: string[]
-  newsSources?: string[]
-}) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const currentContentIngestion = currentLinks.contentIngestion || {
-    podcasts: [],
-    youtubeChannels: [],
-    influencers: [],
-    newsSources: []
-  }
-
-  const newContentIngestion = {
-    ...currentContentIngestion,
-    ...contentIngestion
-  }
-
-  const newLinks = {
-    ...currentLinks,
-    contentIngestion: newContentIngestion
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update content ingestion: ${error.message}`)
-  }
-}
-
-// Organization management functions
-
-// Add organization
-export async function addOrganization(organization: {
-  name: string
-  description: string
-  role: 'admin' | 'member'
-  status: 'active' | 'past'
-  type: 'usc' | 'non-usc'
-}) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const organizations = currentLinks.organizations || []
-
-  const newOrganization = {
-    id: `org-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    name: organization.name,
-    description: organization.description,
-    role: organization.role,
-    status: organization.status,
-    type: organization.type
-  }
-
-  const newLinks = {
-    ...currentLinks,
-    organizations: [...organizations, newOrganization]
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to add organization: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Remove organization
-export async function removeOrganization(organizationId: string) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const organizations = currentLinks.organizations || []
-
-  const newLinks = {
-    ...currentLinks,
-    organizations: organizations.filter((org: Organization) => org.id !== organizationId)
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to remove organization: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Update organization
-export async function updateOrganization(organizationId: string, organization: {
-  name: string
-  description: string
-  role: 'admin' | 'member'
-  status: 'active' | 'past'
-  type: 'usc' | 'non-usc'
-}) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const organizations = currentLinks.organizations || []
-
-  const updatedOrganizations = organizations.map((org: Organization) => 
-    org.id === organizationId 
-      ? { ...org, ...organization }
-      : org
-  )
-
-  const newLinks = {
-    ...currentLinks,
-    organizations: updatedOrganizations
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update organization: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
-}
-
-// Update favorite tool
-export async function updateTool(toolId: string, tool: {
-  name: string
-  description?: string
-  categories: string[]
-  link?: string
-}) {
-  const user = await requireActiveUser()
-  const supabase = await createClient()
-
-  // Get current profile to merge with existing links
-  const { data: currentProfile, error: currentError } = await supabase
-    .from('profiles')
-    .select('links')
-    .eq('id', user.id)
-    .single()
-
-  if (currentError) {
-    throw new Error(`Failed to fetch current profile: ${currentError.message}`)
-  }
-
-  const currentLinks = currentProfile.links || {}
-  const favoriteTools = currentLinks.favoriteTools || []
-
-  const updatedTools = favoriteTools.map((t: FavoriteTool) => 
-    t.id === toolId 
-      ? { ...t, ...tool }
-      : t
-  )
-
-  const newLinks = {
-    ...currentLinks,
-    favoriteTools: updatedTools
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update({ links: newLinks })
-    .eq('id', user.id)
-
-  if (error) {
-    throw new Error(`Failed to update tool: ${error.message}`)
-  }
-
-  revalidatePath('/profile')
+  return classes.map((cls: any) => ({
+    id: cls.id,
+    title: cls.title,
+    code: cls.code,
+    description: cls.description,
+    term: null,
+    year: null,
+    semester: null,
+    instructor: null
+  }))
 }

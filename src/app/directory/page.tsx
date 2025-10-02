@@ -52,7 +52,7 @@ export default function Directory() {
         search: searchTerm || undefined,
         hometown: selectedHometown || undefined,
         location: selectedLocation || undefined,
-        cohort: selectedCohort || undefined
+        cohort: selectedCohort ? [selectedCohort] : undefined
       }
       
       const profilesData = await getDirectoryProfiles(filters)
@@ -336,9 +336,9 @@ export default function Directory() {
                             Skills
                           </h4>
                           <div className="flex flex-wrap gap-2">
-                            {profile.skills.map((skill) => (
-                              <span key={skill.id} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
-                                {skill.name}
+                            {profile.skills.map((skill, index) => (
+                              <span key={index} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                                {skill}
                               </span>
                             ))}
                           </div>
