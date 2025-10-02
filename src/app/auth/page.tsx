@@ -56,6 +56,20 @@ export default function Auth() {
     setError(null)
     setSuccess(null)
 
+    // Validate required fields for signup
+    if (!isLogin) {
+      if (!formData.year.trim()) {
+        setError('Graduation year is required.')
+        setLoading(false)
+        return
+      }
+      if (!formData.cohort.trim()) {
+        setError('Cohort selection is required.')
+        setLoading(false)
+        return
+      }
+    }
+
     try {
       if (isLogin) {
         // Sign in
@@ -366,6 +380,7 @@ export default function Auth() {
                           onChange={(e) => handleInputChange("year", e.target.value)}
                           placeholder="2026"
                           className="pl-10"
+                          required
                         />
                       </div>
                     </div>
