@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, UserCheck, FileText, Tag, Settings, Activity } from 'lucide-react'
+import { Users, UserCheck, User, FileText, Tag, Settings, Activity } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function AdminDashboard() {
@@ -38,6 +38,12 @@ export default async function AdminDashboard() {
                 <Button variant="outline" className="w-full justify-start">
                   <UserCheck className="h-4 w-4 mr-2" />
                   Pending Approvals
+                </Button>
+              </Link>
+              <Link href="/admin/edit-user">
+                <Button variant="outline" className="w-full justify-start">
+                  <User className="h-4 w-4 mr-2" />
+                  Edit User Profiles
                 </Button>
               </Link>
             </div>
