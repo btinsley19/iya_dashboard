@@ -83,8 +83,12 @@ export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<
     .order('created_at', { ascending: false })
 
   if (profilesError) {
+    console.error('Directory query error:', profilesError)
     throw new Error(`Failed to fetch profiles: ${profilesError.message}`)
   }
+
+  // Log for debugging
+  console.log(`Directory query returned ${profiles?.length || 0} active profiles`)
 
   // Transform profiles to match DirectoryProfile interface
   const transformedProfiles: DirectoryProfile[] = profiles.map(profile => {

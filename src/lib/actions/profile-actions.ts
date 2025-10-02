@@ -91,6 +91,14 @@ export async function getUserProfile(): Promise<{
   // Extract data from links JSONB
   const links = profile.links as any || {}
   
+  // Debug logging
+  console.log('Profile links data:', {
+    hasLinks: !!profile.links,
+    linksKeys: Object.keys(links),
+    skillsCount: links.skills?.length || 0,
+    interestsCount: links.interests?.length || 0
+  })
+  
   // Transform data to match frontend interface
   const transformedProfile = {
     id: profile.id,
