@@ -133,7 +133,7 @@ export async function getUserProfile(): Promise<{
       technologies: project.links?.technologies || [],
       status: project.links?.status || 'completed'
     })),
-    classes: (userClasses || []).map((userClass: any) => ({
+    classes: (userClasses || []).map((userClass: { classes: { id: string; title: string; code: string; description?: string | null } }) => ({
       id: userClass.classes.id,
       title: userClass.classes.title,
       code: userClass.classes.code,
@@ -590,7 +590,7 @@ export async function createProject(project: {
   title: string
   summary?: string
   description?: string
-  links?: any
+  links?: Record<string, unknown>
 }): Promise<Project> {
   const user = await requireActiveUser()
   const supabase = await createClient()
@@ -629,7 +629,7 @@ export async function updateProject(projectId: string, updates: {
   title?: string
   summary?: string
   description?: string
-  links?: any
+  links?: Record<string, unknown>
 }): Promise<void> {
   const user = await requireActiveUser()
   const supabase = await createClient()
@@ -954,7 +954,7 @@ export const addOrganization = async (org: Omit<Organization, 'id'>) => {
   }
   return await updateOrganizations([newOrg])
 }
-export const removeOrganization = async (orgId: string) => await updateOrganizations([]) // Will be handled by UI
+export const removeOrganization = async (_orgId: string) => await updateOrganizations([]) // Will be handled by UI
 export const updateOrganization = updateOrganizations
 export const updateTool = updateFavoriteTools
 
@@ -971,7 +971,7 @@ export async function getAllClasses(): Promise<Class[]> {
     throw new Error(`Failed to fetch classes: ${error.message}`)
   }
 
-  return classes.map((cls: any) => ({
+  return classes.map((cls: { id: string; title: string; code: string; description?: string | null }) => ({
     id: cls.id,
     title: cls.title,
     code: cls.code,
