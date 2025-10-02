@@ -113,7 +113,7 @@ export async function keywordSearch(
       id: cls.id,
       type: 'class' as const,
       title: cls.title,
-      description: `${cls.code} • ${cls.description || 'No description available'}`,
+      description: `${cls.code} • ${cls.title}`,
       metadata: {
         code: cls.code
       }
@@ -151,58 +151,6 @@ export async function keywordSearch(
   return results
 }
 
-// Semantic search using pgvector embeddings
-export async function semanticSearch(
-  query: string,
-  filters: SearchFilters = {},
-  limit: number = 20
-): Promise<SearchResult[]> {
-  // const supabase = await createClient()
-
-  // For now, we'll use a simple keyword search as a fallback
-  // In a real implementation, you would:
-  // 1. Generate an embedding for the query using OpenAI or similar
-  // 2. Use pgvector to find similar documents
-  // 3. Return ranked results based on cosine similarity
-
-  // This is a placeholder implementation
-  return keywordSearch(query, filters, limit)
-}
-
-// Hybrid search combining keyword and semantic results
-export async function hybridSearch(
-  query: string,
-  filters: SearchFilters = {},
-  limit: number = 20
-): Promise<SearchResult[]> {
-  const [keywordResults, semanticResults] = await Promise.all([
-    keywordSearch(query, filters, limit),
-    semanticSearch(query, filters, limit)
-  ])
-
-  // Combine and deduplicate results
-  const combined = new Map<string, SearchResult>()
-
-  // Add keyword results with higher weight
-  keywordResults.forEach(result => {
-    combined.set(result.id, { ...result, score: (result.score || 0) + 1 })
-  })
-
-  // Add semantic results
-  semanticResults.forEach(result => {
-    const existing = combined.get(result.id)
-    if (existing) {
-      existing.score = (existing.score || 0) + 0.5
-    } else {
-      combined.set(result.id, { ...result, score: 0.5 })
-    }
-  })
-
-  // Sort by score and return top results
-  return Array.from(combined.values())
-    .sort((a, b) => (b.score || 0) - (a.score || 0))
-    .slice(0, limit)
-}
 
 // Search with filters for the directory page
 export async function searchDirectory(

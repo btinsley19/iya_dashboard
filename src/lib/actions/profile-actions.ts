@@ -60,8 +60,7 @@ export async function getUserProfile(): Promise<{
       classes (
         id,
         code,
-        title,
-        description
+        title
       )
     `)
     .eq('profile_id', user.id)
@@ -133,11 +132,10 @@ export async function getUserProfile(): Promise<{
       technologies: project.links?.technologies || [],
       status: project.links?.status || 'completed'
     })),
-    classes: (userClasses || []).map((userClass: { classes: { id: string; title: string; code: string; description?: string | null } }) => ({
+    classes: (userClasses || []).map((userClass: { classes: { id: string; title: string; code: string } }) => ({
       id: userClass.classes.id,
       title: userClass.classes.title,
       code: userClass.classes.code,
-      description: userClass.classes.description,
       term: null, // Not used in new structure
       year: null, // Not used in new structure
       semester: null, // Not used in new structure
@@ -971,11 +969,10 @@ export async function getAllClasses(): Promise<Class[]> {
     throw new Error(`Failed to fetch classes: ${error.message}`)
   }
 
-  return classes.map((cls: { id: string; title: string; code: string; description?: string | null }) => ({
+  return classes.map((cls: { id: string; title: string; code: string }) => ({
     id: cls.id,
     title: cls.title,
     code: cls.code,
-    description: cls.description,
     term: null,
     year: null,
     semester: null,

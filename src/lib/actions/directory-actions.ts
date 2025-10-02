@@ -13,7 +13,6 @@ export interface DirectoryProfile extends Profile {
         id: string
         code: string
         title: string
-        description?: string | null
       }>
   projects: Array<{
     id: string
@@ -66,8 +65,7 @@ export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<
         classes (
           id,
           code,
-          title,
-          description
+          title
         )
       ),
       projects (
@@ -136,8 +134,7 @@ export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<
       classes: (profile.profile_classes || []).map((pc: any) => ({
         id: pc.classes.id,
         code: pc.classes.code,
-        title: pc.classes.title,
-        description: pc.classes.description
+        title: pc.classes.title
       })),
       projects: (profile.projects || []).map((project: any) => ({
         id: project.id,
@@ -180,8 +177,7 @@ export async function getProfileById(profileId: string): Promise<DirectoryProfil
         classes (
           id,
           code,
-          title,
-          description
+          title
         )
       ),
       projects (
@@ -212,8 +208,7 @@ export async function getProfileById(profileId: string): Promise<DirectoryProfil
     classes: (profile.profile_classes || []).map((pc: any) => ({
       id: pc.classes.id,
       code: pc.classes.code,
-      title: pc.classes.title,
-      instructors: pc.classes.instructors
+      title: pc.classes.title
     })),
     projects: (profile.projects || []).map((project: any) => ({
       id: project.id,
@@ -271,8 +266,7 @@ export async function getUserRecommendations(userId: string): Promise<DirectoryP
         classes (
           id,
           code,
-          title,
-          description
+          title
         )
       ),
       projects (
@@ -329,8 +323,7 @@ export async function getUserRecommendations(userId: string): Promise<DirectoryP
       classes: (profile.profile_classes || []).map((pc: any) => ({
         id: pc.classes.id,
         code: pc.classes.code,
-        title: pc.classes.title,
-        description: pc.classes.description
+        title: pc.classes.title
       })),
       projects: (profile.projects || []).map((project: any) => ({
         id: project.id,
@@ -378,8 +371,7 @@ export async function searchProfiles(query: string): Promise<DirectoryProfile[]>
         classes (
           id,
           code,
-          title,
-          description
+          title
         )
       ),
       projects (
@@ -409,8 +401,7 @@ export async function searchProfiles(query: string): Promise<DirectoryProfile[]>
       classes: (profile.profile_classes || []).map((pc: any) => ({
         id: pc.classes.id,
         code: pc.classes.code,
-        title: pc.classes.title,
-        description: pc.classes.description
+        title: pc.classes.title
       })),
       projects: (profile.projects || []).map((project: any) => ({
         id: project.id,

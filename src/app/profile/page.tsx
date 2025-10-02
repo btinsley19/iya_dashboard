@@ -137,8 +137,7 @@ export default function Profile() {
     status: "completed"
   })
   const [newClass, setNewClass] = useState({
-    classId: "",
-    role: "mentor" as const
+    classId: ""
   })
   const [classSearchQuery, setClassSearchQuery] = useState("")
   const [filteredClasses, setFilteredClasses] = useState<Class[]>([])
@@ -1487,7 +1486,7 @@ export default function Profile() {
         ...prev,
         classes: [...prev.classes, classToAdd]
       } : null)
-      setNewClass({ classId: "", role: "mentor" })
+      setNewClass({ classId: "" })
       setClassSearchQuery("")
       setShowClassModal(false)
       
@@ -1508,7 +1507,7 @@ export default function Profile() {
         ...prev,
         classes: prev.classes.filter(c => c.id !== selectedClass.id)
       } : null)
-      setNewClass({ classId: selectedClass.id, role: newClass.role })
+      setNewClass({ classId: selectedClass.id })
       setShowClassModal(true)
     }
   }
@@ -3683,7 +3682,7 @@ export default function Profile() {
                 onClick={() => {
                   setShowClassModal(false)
                   setClassSearchQuery("")
-                  setNewClass({ classId: "", role: "mentor" })
+                  setNewClass({ classId: "" })
                 }}
                 className="flex-1"
               >
