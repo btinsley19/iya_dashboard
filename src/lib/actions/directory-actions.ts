@@ -82,6 +82,42 @@ export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 
+  // TEMPORARY: If no active users found, get all users for debugging
+  if (!profiles || profiles.length === 0) {
+    console.log('No active users found, checking all users...')
+    const { data: allProfiles, error: allError } = await supabase
+      .from('profiles')
+      .select(`
+        *,
+        profile_classes (
+          classes (
+            id,
+            code,
+            title,
+            description
+          )
+        ),
+        projects (
+          id,
+          title,
+          summary,
+          description,
+          links,
+          visibility
+        )
+      `)
+      .order('created_at', { ascending: false })
+    
+    if (allError) {
+      console.error('Error fetching all profiles:', allError)
+    } else {
+      console.log(`Found ${allProfiles?.length || 0} total profiles`)
+      allProfiles?.forEach(profile => {
+        console.log(`- ${profile.full_name} (status: ${profile.status})`)
+      })
+    }
+  }
+
   if (profilesError) {
     console.error('Directory query error:', profilesError)
     throw new Error(`Failed to fetch profiles: ${profilesError.message}`)
@@ -168,7 +204,7 @@ export async function getProfileById(profileId: string): Promise<DirectoryProfil
     throw new Error(`Failed to fetch profile: ${error.message}`)
   }
 
-  const links = (profile.links as any) || {}
+  const links = (profile.links as Record<string, unknown>) || {}
   
   return {
     ...profile,
@@ -220,7 +256,7 @@ export async function getUserRecommendations(userId: string): Promise<DirectoryP
     throw new Error(`Failed to fetch current user profile: ${currentError.message}`)
   }
 
-  const currentLinks = (currentProfile.links as any) || {}
+  const currentLinks = (currentProfile.links as Record<string, unknown>) || {}
   const currentSkills = currentLinks.skills || []
   const currentInterests = currentLinks.interests || []
   const currentCohort = currentProfile.cohort
@@ -258,7 +294,7 @@ export async function getUserRecommendations(userId: string): Promise<DirectoryP
 
   // Transform and score profiles
   const scoredProfiles = profiles.map(profile => {
-    const links = (profile.links as any) || {}
+    const links = (profile.links as Record<string, unknown>) || {}
     const profileSkills = links.skills || []
     const profileInterests = links.interests || []
     
@@ -324,7 +360,7 @@ export async function getUserRecommendations(userId: string): Promise<DirectoryP
 
   // Sort by match score and return top 20
   return scoredProfiles
-    .sort((a, b) => (b as any).matchScore - (a as any).matchScore)
+    .sort((a, b) => ((b as { matchScore: number }).matchScore) - ((a as { matchScore: number }).matchScore))
     .slice(0, 20)
     .map(({ matchScore, ...profile }) => profile) // Remove matchScore from final result
 }
@@ -365,7 +401,7 @@ export async function searchProfiles(query: string): Promise<DirectoryProfile[]>
 
   // Transform profiles
   const transformedProfiles: DirectoryProfile[] = profiles.map(profile => {
-    const links = (profile.links as any) || {}
+    const links = (profile.links as Record<string, unknown>) || {}
     
     return {
       ...profile,

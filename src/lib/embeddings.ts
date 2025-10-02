@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 
 // This is a placeholder for the embedding generation
 // In a real implementation, you would integrate with OpenAI, Cohere, or another embedding service
-export async function generateEmbedding(_text: string): Promise<number[]> {
+export async function generateEmbedding(text: string): Promise<number[]> {
   // Placeholder: return a random vector for demonstration
   // In production, you would call an embedding API like:
   // const response = await fetch('https://api.openai.com/v1/embeddings', {

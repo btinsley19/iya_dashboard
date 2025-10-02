@@ -26,7 +26,7 @@ interface DebugData {
     id: string
     name: string
     status: string
-    links: any
+    links: Record<string, unknown>
   }
 }
 
@@ -89,7 +89,7 @@ export default function DebugDataPage() {
 
   useEffect(() => {
     fetchDebugData()
-  }, [])
+  }, [fetchDebugData])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -332,7 +332,7 @@ export default function DebugDataPage() {
               <div className="p-3 bg-blue-50 border border-blue-200 rounded">
                 <p className="text-blue-800">
                   <strong>{debugData.pendingUsers} users pending approval.</strong> 
-                  These users won't appear in the directory until approved.
+                  These users won&apos;t appear in the directory until approved.
                 </p>
               </div>
             )}

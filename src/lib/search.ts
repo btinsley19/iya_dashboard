@@ -157,7 +157,7 @@ export async function semanticSearch(
   filters: SearchFilters = {},
   limit: number = 20
 ): Promise<SearchResult[]> {
-  const supabase = await createClient()
+  // const supabase = await createClient()
 
   // For now, we'll use a simple keyword search as a fallback
   // In a real implementation, you would:

@@ -11,7 +11,7 @@ import { requireAdmin } from '@/lib/auth'
 export async function checkEmailStatus(email: string) {
   const admin = await requireAdmin()
   const supabase = await createClient()
-  const adminSupabase = createAdminClient()
+  // const adminSupabase = createAdminClient()
 
   try {
     // Check if profile exists

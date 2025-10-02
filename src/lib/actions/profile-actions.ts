@@ -89,14 +89,16 @@ export async function getUserProfile(): Promise<{
   }
 
   // Extract data from links JSONB
-  const links = profile.links as any || {}
+  const links = (profile.links as Record<string, unknown>) || {}
   
   // Debug logging
   console.log('Profile links data:', {
     hasLinks: !!profile.links,
     linksKeys: Object.keys(links),
-    skillsCount: links.skills?.length || 0,
-    interestsCount: links.interests?.length || 0
+    skillsCount: Array.isArray(links.skills) ? links.skills.length : 0,
+    interestsCount: Array.isArray(links.interests) ? links.interests.length : 0,
+    skills: links.skills,
+    interests: links.interests
   })
   
   // Transform data to match frontend interface
@@ -110,13 +112,13 @@ export async function getUserProfile(): Promise<{
     cohort: profile.cohort || null,
     modality: profile.modality || null,
     bio: profile.bio || null,
-    skills: links.skills || [],
-    organizations: links.organizations || [],
-    interests: links.interests || [],
-    hobbiesAndSports: links.hobbiesAndSports || [],
-    canTeach: links.canTeach || [],
-    wantToLearn: links.wantToLearn || [],
-    favoriteTools: links.favoriteTools || [],
+    skills: Array.isArray(links.skills) ? links.skills : [],
+    organizations: Array.isArray(links.organizations) ? links.organizations : [],
+    interests: Array.isArray(links.interests) ? links.interests : [],
+    hobbiesAndSports: Array.isArray(links.hobbiesAndSports) ? links.hobbiesAndSports : [],
+    canTeach: Array.isArray(links.canTeach) ? links.canTeach : [],
+    wantToLearn: Array.isArray(links.wantToLearn) ? links.wantToLearn : [],
+    favoriteTools: Array.isArray(links.favoriteTools) ? links.favoriteTools : [],
     contentIngestion: links.contentIngestion || {
       podcasts: [],
       youtubeChannels: [],
@@ -169,7 +171,7 @@ export async function updateSkills(skills: string[]): Promise<void> {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update skills in links
   const updatedLinks = {
@@ -208,7 +210,7 @@ export async function updateInterests(interests: string[]): Promise<void> {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update interests in links
   const updatedLinks = {
@@ -247,7 +249,7 @@ export async function updateHobbiesAndSports(hobbiesAndSports: string[]): Promis
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update hobbies and sports in links
   const updatedLinks = {
@@ -286,7 +288,7 @@ export async function updateWantToLearn(wantToLearn: string[]): Promise<void> {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update want to learn in links
   const updatedLinks = {
@@ -325,7 +327,7 @@ export async function updateCanTeach(canTeach: string[]): Promise<void> {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update can teach in links
   const updatedLinks = {
@@ -364,7 +366,7 @@ export async function updateOrganizations(organizations: Organization[]): Promis
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update organizations in links
   const updatedLinks = {
@@ -403,7 +405,7 @@ export async function updateFavoriteTools(favoriteTools: FavoriteTool[]): Promis
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update favorite tools in links
   const updatedLinks = {
@@ -447,7 +449,7 @@ export async function updateContentIngestion(contentIngestion: {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update content ingestion in links
   const updatedLinks = {
@@ -524,7 +526,7 @@ export async function updateLinks(links: {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   
   // Update links
   const updatedLinks = {
@@ -682,8 +684,8 @@ export const addSkill = async (skill: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
-  const currentSkills = currentLinks.skills || []
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
+  const currentSkills = Array.isArray(currentLinks.skills) ? currentLinks.skills : []
   
   // Add new skill if not already present
   if (!currentSkills.includes(skill)) {
@@ -706,8 +708,8 @@ export const removeSkill = async (skill: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
-  const currentSkills = currentLinks.skills || []
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
+  const currentSkills = Array.isArray(currentLinks.skills) ? currentLinks.skills : []
   
   // Remove skill
   await updateSkills(currentSkills.filter((s: string) => s !== skill))
@@ -728,8 +730,8 @@ export const addInterest = async (interest: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
-  const currentInterests = currentLinks.interests || []
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
+  const currentInterests = Array.isArray(currentLinks.interests) ? currentLinks.interests : []
   
   // Add new interest if not already present
   if (!currentInterests.includes(interest)) {
@@ -752,8 +754,8 @@ export const removeInterest = async (interest: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
-  const currentInterests = currentLinks.interests || []
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
+  const currentInterests = Array.isArray(currentLinks.interests) ? currentLinks.interests : []
   
   // Remove interest
   await updateInterests(currentInterests.filter((i: string) => i !== interest))
@@ -774,8 +776,8 @@ export const addHobbyOrSport = async (hobby: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
-  const currentHobbies = currentLinks.hobbiesAndSports || []
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
+  const currentHobbies = Array.isArray(currentLinks.hobbiesAndSports) ? currentLinks.hobbiesAndSports : []
   
   // Add new hobby if not already present
   if (!currentHobbies.includes(hobby)) {
@@ -798,8 +800,8 @@ export const removeHobbyOrSport = async (hobby: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
-  const currentHobbies = currentLinks.hobbiesAndSports || []
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
+  const currentHobbies = Array.isArray(currentLinks.hobbiesAndSports) ? currentLinks.hobbiesAndSports : []
   
   // Remove hobby
   await updateHobbiesAndSports(currentHobbies.filter((h: string) => h !== hobby))
@@ -820,8 +822,8 @@ export const addFavoriteTool = async (tool: FavoriteTool) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
-  const currentTools = currentLinks.favoriteTools || []
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
+  const currentTools = Array.isArray(currentLinks.favoriteTools) ? currentLinks.favoriteTools : []
   
   // Add new tool
   await updateFavoriteTools([...currentTools, tool])
@@ -842,8 +844,8 @@ export const removeFavoriteTool = async (toolId: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
-  const currentTools = currentLinks.favoriteTools || []
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
+  const currentTools = Array.isArray(currentLinks.favoriteTools) ? currentLinks.favoriteTools : []
   
   // Remove tool
   await updateFavoriteTools(currentTools.filter((t: FavoriteTool) => t.id !== toolId))
@@ -869,7 +871,7 @@ export const addCanTeach = async (skill: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   const currentCanTeach = currentLinks.canTeach || []
   
   // Add new skill if not already present
@@ -893,7 +895,7 @@ export const removeCanTeach = async (skill: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   const currentCanTeach = currentLinks.canTeach || []
   
   // Remove skill
@@ -915,7 +917,7 @@ export const addWantToLearn = async (skill: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   const currentWantToLearn = currentLinks.wantToLearn || []
   
   // Add new skill if not already present
@@ -939,7 +941,7 @@ export const removeWantToLearn = async (skill: string) => {
     throw new Error(`Failed to fetch profile: ${profileError.message}`)
   }
 
-  const currentLinks = (profile.links as any) || {}
+  const currentLinks = (profile.links as Record<string, unknown>) || {}
   const currentWantToLearn = currentLinks.wantToLearn || []
   
   // Remove skill
