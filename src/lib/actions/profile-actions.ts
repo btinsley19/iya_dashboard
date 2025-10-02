@@ -872,7 +872,7 @@ export const addCanTeach = async (skill: string) => {
   }
 
   const currentLinks = (profile.links as Record<string, unknown>) || {}
-  const currentCanTeach = currentLinks.canTeach || []
+  const currentCanTeach = Array.isArray(currentLinks.canTeach) ? currentLinks.canTeach : []
   
   // Add new skill if not already present
   if (!currentCanTeach.includes(skill)) {
@@ -896,7 +896,7 @@ export const removeCanTeach = async (skill: string) => {
   }
 
   const currentLinks = (profile.links as Record<string, unknown>) || {}
-  const currentCanTeach = currentLinks.canTeach || []
+  const currentCanTeach = Array.isArray(currentLinks.canTeach) ? currentLinks.canTeach : []
   
   // Remove skill
   await updateCanTeach(currentCanTeach.filter((s: string) => s !== skill))
@@ -918,7 +918,7 @@ export const addWantToLearn = async (skill: string) => {
   }
 
   const currentLinks = (profile.links as Record<string, unknown>) || {}
-  const currentWantToLearn = currentLinks.wantToLearn || []
+  const currentWantToLearn = Array.isArray(currentLinks.wantToLearn) ? currentLinks.wantToLearn : []
   
   // Add new skill if not already present
   if (!currentWantToLearn.includes(skill)) {
