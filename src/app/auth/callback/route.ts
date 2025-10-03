@@ -5,17 +5,25 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
+  const type = searchParams.get('type')
 
   if (code) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // Get the user
+      // Get the user and session
       const { data: { user } } = await supabase.auth.getUser()
+      const { data: { session } } = await supabase.auth.getSession()
       
-      if (user) {
-        // Check if profile exists
+      if (user && session) {
+        // Check if this is a password reset flow
+        if (type === 'recovery') {
+          // This is a password reset flow, redirect to reset password page
+          return NextResponse.redirect(`${origin}/auth/reset-password`)
+        }
+
+        // Check if profile exists (for OAuth flows)
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')

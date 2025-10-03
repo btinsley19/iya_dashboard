@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,6 +25,44 @@ export default function Auth() {
   const router = useRouter()
   const supabase = createClient()
 
+  // Handle URL parameters for password reset flow
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const errorParam = urlParams.get('error')
+    
+    if (errorParam === 'access_denied' && urlParams.get('error_code') === 'otp_expired') {
+      setError('Password reset link has expired. Please request a new one.')
+      setIsForgotPassword(true)
+    } else if (code) {
+      // Handle password reset code
+      handlePasswordResetCode(code)
+    }
+  }, [])
+
+  const handlePasswordResetCode = async (code: string) => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      
+      if (error) {
+        setError('Invalid or expired reset link. Please request a new password reset.')
+        setIsForgotPassword(true)
+      } else {
+        // Successfully exchanged code for session, redirect to reset password page
+        router.push('/auth/reset-password')
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred'
+      setError(errorMessage)
+      setIsForgotPassword(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -33,7 +71,7 @@ export default function Auth() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
       })
 
       if (error) {
