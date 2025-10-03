@@ -56,8 +56,8 @@ export interface DirectoryProfile extends Profile {
 export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<DirectoryProfile[]> {
   const supabase = await createClient()
 
-  // Get profiles with status = 'active' only
-  const { data: profiles, error: profilesError } = await supabase
+  // Start with base query
+  let query = supabase
     .from('profiles')
     .select(`
       *,
@@ -78,7 +78,53 @@ export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<
       )
     `)
     .eq('status', 'active')
-    .order('created_at', { ascending: false })
+
+  // Don't apply server-side search filter - we'll handle all search client-side
+
+  // Apply hometown filter
+  if (filters?.hometown) {
+    query = query.ilike('hometown', `%${filters.hometown}%`)
+  }
+
+  // Apply location filter
+  if (filters?.location) {
+    query = query.ilike('location', `%${filters.location}%`)
+  }
+
+  // Apply cohort filter
+  if (filters?.cohort && filters.cohort.length > 0) {
+    query = query.in('cohort', filters.cohort)
+  }
+
+  // Apply skills filter (search in JSONB links field)
+  if (filters?.skills && filters.skills.length > 0) {
+    // Use JSONB contains operator to check if any of the skills are in the skills array
+    const skillsCondition = filters.skills.map(skill => `links->'skills' ? '${skill}'`).join(' OR ')
+    query = query.or(skillsCondition)
+  }
+
+  // Apply interests filter (search in JSONB links field)
+  if (filters?.interests && filters.interests.length > 0) {
+    // Use JSONB contains operator to check if any of the interests are in the interests array
+    const interestsCondition = filters.interests.map(interest => `links->'interests' ? '${interest}'`).join(' OR ')
+    query = query.or(interestsCondition)
+  }
+
+  // Apply year filter
+  if (filters?.year && filters.year.length > 0) {
+    const years = filters.year.map(y => parseInt(y)).filter(y => !isNaN(y))
+    if (years.length > 0) {
+      query = query.in('graduation_year', years)
+    }
+  }
+
+  // Apply modality filter
+  if (filters?.modality && filters.modality.length > 0) {
+    query = query.in('modality', filters.modality)
+  }
+
+  // Execute query
+  const { data: profiles, error: profilesError } = await query.order('created_at', { ascending: false })
 
   // TEMPORARY: If no active users found, get all users for debugging
   if (!profiles || profiles.length === 0) {
@@ -91,8 +137,7 @@ export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<
           classes (
             id,
             code,
-            title,
-            description
+            title
           )
         ),
         projects (
@@ -125,7 +170,7 @@ export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<
   console.log(`Directory query returned ${profiles?.length || 0} active profiles`)
 
   // Transform profiles to match DirectoryProfile interface
-  const transformedProfiles: DirectoryProfile[] = profiles.map(profile => {
+  let transformedProfiles: DirectoryProfile[] = profiles.map(profile => {
     const links = (profile.links as Record<string, unknown>) || {}
     
     return {
@@ -161,6 +206,41 @@ export async function getDirectoryProfiles(filters?: DirectoryFilters): Promise<
       degree: null // Backward compatibility
     }
   })
+
+  // Apply client-side search filter for all fields if search term exists
+  if (filters?.search) {
+    const searchTerm = filters.search.toLowerCase()
+    transformedProfiles = transformedProfiles.filter(profile => {
+      // Check basic text fields
+      const nameMatch = profile.full_name?.toLowerCase().includes(searchTerm) || false
+      const bioMatch = profile.bio?.toLowerCase().includes(searchTerm) || false
+      const majorMatch = profile.major?.toLowerCase().includes(searchTerm) || false
+      const hometownMatch = profile.hometown?.toLowerCase().includes(searchTerm) || false
+      const locationMatch = profile.location?.toLowerCase().includes(searchTerm) || false
+      const cohortMatch = profile.cohort?.toLowerCase().includes(searchTerm) || false
+      
+      // Check JSONB array fields
+      const skillsMatch = (profile.skills as string[]).some(skill => 
+        skill.toLowerCase().includes(searchTerm)
+      )
+      const interestsMatch = (profile.interests as string[]).some(interest => 
+        interest.toLowerCase().includes(searchTerm)
+      )
+      const wantToLearnMatch = (profile.wantToLearn as string[]).some(want => 
+        want.toLowerCase().includes(searchTerm)
+      )
+      const hobbiesMatch = (profile.hobbiesAndSports as string[]).some(hobby => 
+        hobby.toLowerCase().includes(searchTerm)
+      )
+      const canTeachMatch = (profile.canTeach as string[]).some(teach => 
+        teach.toLowerCase().includes(searchTerm)
+      )
+      
+      // Return true if any field contains the search term
+      return nameMatch || bioMatch || majorMatch || hometownMatch || locationMatch || cohortMatch ||
+             skillsMatch || interestsMatch || wantToLearnMatch || hobbiesMatch || canTeachMatch
+    })
+  }
 
   return transformedProfiles
 }
@@ -289,20 +369,20 @@ export async function getUserRecommendations(userId: string): Promise<DirectoryP
   // Transform and score profiles
   const scoredProfiles = profiles.map(profile => {
     const links = (profile.links as Record<string, unknown>) || {}
-    const profileSkills = links.skills || []
-    const profileInterests = links.interests || []
+    const profileSkills = (links.skills as string[]) || []
+    const profileInterests = (links.interests as string[]) || []
     
     // Calculate match score
     let score = 0
     
     // Skills match (2 points per match)
-    const skillMatches = currentSkills.filter((skill: string) => 
+    const skillMatches = (currentSkills as string[]).filter((skill: string) => 
       profileSkills.includes(skill)
     ).length
     score += skillMatches * 2
     
     // Interests match (1 point per match)
-    const interestMatches = currentInterests.filter((interest: string) => 
+    const interestMatches = (currentInterests as string[]).filter((interest: string) => 
       profileInterests.includes(interest)
     ).length
     score += interestMatches

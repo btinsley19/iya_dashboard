@@ -118,7 +118,7 @@ export async function getUserProfile(): Promise<{
     canTeach: Array.isArray(links.canTeach) ? links.canTeach : [],
     wantToLearn: Array.isArray(links.wantToLearn) ? links.wantToLearn : [],
     favoriteTools: Array.isArray(links.favoriteTools) ? links.favoriteTools : [],
-    contentIngestion: links.contentIngestion || {
+    contentIngestion: (links.contentIngestion as any) || {
       podcasts: [],
       youtubeChannels: [],
       influencers: [],
@@ -132,7 +132,7 @@ export async function getUserProfile(): Promise<{
       technologies: project.links?.technologies || [],
       status: project.links?.status || 'completed'
     })),
-    classes: (userClasses || []).map((userClass: { classes: { id: string; title: string; code: string } }) => ({
+    classes: (userClasses || []).map((userClass: any) => ({
       id: userClass.classes.id,
       title: userClass.classes.title,
       code: userClass.classes.code,
@@ -141,10 +141,10 @@ export async function getUserProfile(): Promise<{
       semester: null, // Not used in new structure
       instructor: null // Not used in new structure
     })),
-    linkedinUrl: links.linkedin || null,
-    resumeUrl: links.resume || null,
-    personalWebsite: links.personalWebsite || null,
-    github: links.github || null,
+    linkedinUrl: (links.linkedin as string) || null,
+    resumeUrl: (links.resume as string) || null,
+    personalWebsite: (links.personalWebsite as string) || null,
+    github: (links.github as string) || null,
     avatar: profile.avatar_url || null,
     createdAt: new Date(profile.created_at),
     updatedAt: new Date(profile.updated_at)
@@ -940,7 +940,7 @@ export const removeWantToLearn = async (skill: string) => {
   }
 
   const currentLinks = (profile.links as Record<string, unknown>) || {}
-  const currentWantToLearn = currentLinks.wantToLearn || []
+  const currentWantToLearn = (currentLinks.wantToLearn as string[]) || []
   
   // Remove skill
   await updateWantToLearn(currentWantToLearn.filter((s: string) => s !== skill))
